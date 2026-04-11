@@ -12,6 +12,7 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 import { APPLICATION_STATUSES } from '../types';
 import type { ApplicationStatus } from '../types';
 import { formatDate } from '../utils/formatDate';
+import { normalizeSalaryRange } from '../utils/salaryFormatting';
 import toast from 'react-hot-toast';
 
 export default function ApplicationDetailPage() {
@@ -61,7 +62,13 @@ export default function ApplicationDetailPage() {
     e.preventDefault();
     if (!id) return;
     try {
-      await updateApp({ id, data: formData });
+      await updateApp({
+        id,
+        data: {
+          ...formData,
+          salaryRange: normalizeSalaryRange(formData.salaryRange, formData.location),
+        },
+      });
       toast.success('Application updated!');
       setIsEditing(false);
     } catch {
@@ -96,6 +103,8 @@ export default function ApplicationDetailPage() {
       </div>
     );
   }
+
+  const displaySalaryRange = normalizeSalaryRange(application.salaryRange || '', application.location || '');
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 theme-transition">
@@ -178,6 +187,12 @@ export default function ApplicationDetailPage() {
                 label="Salary Range"
                 value={formData.salaryRange}
                 onChange={(e) => setFormData({ ...formData, salaryRange: e.target.value })}
+                onBlur={(e) =>
+                  setFormData({
+                    ...formData,
+                    salaryRange: normalizeSalaryRange(e.target.value, formData.location),
+                  })
+                }
               />
               <Input
                 label="JD Link"
@@ -240,10 +255,10 @@ export default function ApplicationDetailPage() {
                 <span className="text-slate-400 dark:text-slate-500">Applied</span>
                 <p className="font-medium text-slate-700 dark:text-slate-200">{formatDate(application.dateApplied)}</p>
               </div>
-              {application.salaryRange && (
+              {displaySalaryRange && (
                 <div>
                   <span className="text-slate-400 dark:text-slate-500">Salary</span>
-                  <p className="font-medium text-slate-700 dark:text-slate-200">{application.salaryRange}</p>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">{displaySalaryRange}</p>
                 </div>
               )}
               {application.jdLink && (

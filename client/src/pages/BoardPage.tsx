@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import KanbanBoard from '../components/board/KanbanBoard';
 import BoardInsights from '../components/board/BoardInsights';
 import AddApplicationModal from '../components/application/AddApplicationModal';
@@ -10,7 +11,7 @@ import { useApplications } from '../hooks/useApplications';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { APPLICATION_STATUSES, type ApplicationStatus } from '../types';
-import { calculatePipelineStats, isFollowUpDue } from '../utils/applicationMetrics';
+import { calculatePipelineStats, getDaysSince, isFollowUpDue } from '../utils/applicationMetrics';
 import {
   Briefcase,
   Plus,
@@ -20,6 +21,8 @@ import {
   X,
   Sun,
   Moon,
+  Clock3,
+  ArrowRight,
 } from 'lucide-react';
 
 type StatusFilter = 'All' | ApplicationStatus;
@@ -28,6 +31,7 @@ type SortMode = 'newest' | 'oldest' | 'company-asc' | 'company-desc';
 const toCsvValue = (value: string): string => `"${value.replace(/"/g, '""')}"`;
 
 export default function BoardPage() {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
@@ -113,6 +117,16 @@ export default function BoardPage() {
     return filtered;
   }, [allApplications, query, statusFilter, followUpsOnly, sortMode]);
 
+  const followUpQueue = useMemo(
+    () =>
+      allApplications
+        .filter((app) => isFollowUpDue(app))
+        .sort((a, b) => new Date(a.dateApplied).getTime() - new Date(b.dateApplied).getTime()),
+    [allApplications]
+  );
+
+  const nextFollowUp = followUpQueue[0];
+
   const hasActiveFilters =
     query.trim().length > 0 || statusFilter !== 'All' || followUpsOnly;
 
@@ -168,6 +182,35 @@ export default function BoardPage() {
     toast.success('Applications exported to CSV');
   };
 
+  const toggleFollowUps = () => {
+    if (followUpQueue.length === 0) {
+      setFollowUpsOnly(false);
+      toast('No follow-ups are due right now');
+      return;
+    }
+
+    const nextMode = !followUpsOnly;
+    setFollowUpsOnly(nextMode);
+
+    if (nextMode) {
+      setQuery('');
+      setStatusFilter('All');
+      setSortMode('oldest');
+      toast.success(
+        `Showing ${followUpQueue.length} follow-up${followUpQueue.length === 1 ? '' : 's'} due`
+      );
+    }
+  };
+
+  const openNextFollowUp = () => {
+    if (!nextFollowUp) {
+      toast('No follow-ups are due right now');
+      return;
+    }
+
+    navigate(`/applications/${nextFollowUp._id}`);
+  };
+
   const clearFilters = () => {
     setQuery('');
     setStatusFilter('All');
@@ -212,7 +255,13 @@ export default function BoardPage() {
       </nav>
 
       <div className="mx-auto w-full max-w-[1600px] px-4 pb-6 pt-4 md:px-6 space-y-4">
-        {!isLoading && !error && <BoardInsights stats={stats} />}
+        {!isLoading && !error && (
+          <BoardInsights
+            stats={stats}
+            followUpsActive={followUpsOnly}
+            onFollowUpsClick={toggleFollowUps}
+          />
+        )}
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
@@ -251,15 +300,29 @@ export default function BoardPage() {
             <option value="company-desc">Z-A</option>
           </select>
 
-          <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-            <input
-              type="checkbox"
-              checked={followUpsOnly}
-              onChange={(e) => setFollowUpsOnly(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-slate-300 dark:border-slate-600"
-            />
-            Follow-ups
-          </label>
+          <ShadButton
+            type="button"
+            variant={followUpsOnly ? 'default' : 'outline'}
+            size="sm"
+            onClick={toggleFollowUps}
+            className="h-9"
+            title="Show applications that need follow-up"
+          >
+            <Clock3 className="h-3.5 w-3.5" />
+            Follow-ups {followUpQueue.length > 0 ? `(${followUpQueue.length})` : ''}
+          </ShadButton>
+
+          <ShadButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={openNextFollowUp}
+            disabled={!nextFollowUp}
+            title="Open the oldest pending follow-up"
+          >
+            Next
+            <ArrowRight className="h-3.5 w-3.5" />
+          </ShadButton>
 
           {hasActiveFilters && (
             <ShadButton variant="ghost" size="sm" onClick={clearFilters}>
@@ -268,6 +331,17 @@ export default function BoardPage() {
             </ShadButton>
           )}
         </div>
+
+        {followUpsOnly && nextFollowUp && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800/40 dark:bg-amber-900/10">
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              Follow-up mode is on. Next: <span className="font-semibold">{nextFollowUp.company}</span> ({getDaysSince(nextFollowUp.dateApplied)} days since applied)
+            </p>
+            <ShadButton type="button" variant="outline" size="sm" onClick={openNextFollowUp}>
+              Open Next
+            </ShadButton>
+          </div>
+        )}
 
         {/* Board */}
         <div className="h-[calc(100vh-200px)] overflow-x-auto pb-4">

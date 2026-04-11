@@ -6,6 +6,7 @@ import ResumeSuggestions from './ResumeSuggestions';
 import { useAiParse } from '../../hooks/useAiParse';
 import { useCreateApplication } from '../../hooks/useApplications';
 import type { CreateApplicationInput } from '../../types';
+import { normalizeSalaryRange } from '../../utils/salaryFormatting';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -66,8 +67,10 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
       return;
     }
     try {
+      const normalizedSalary = normalizeSalaryRange(formData.salaryRange || '', formData.location || '');
       await createApp({
         ...formData,
+        salaryRange: normalizedSalary,
         resumeSuggestions,
       });
       toast.success('Application saved!');
@@ -169,7 +172,8 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
               label="Salary Range"
               value={formData.salaryRange || ''}
               onChange={(e) => updateField('salaryRange', e.target.value)}
-              placeholder="e.g. $80k-$100k"
+              onBlur={(e) => updateField('salaryRange', normalizeSalaryRange(e.target.value, formData.location || ''))}
+              placeholder="e.g. ₹12 LPA - ₹18 LPA"
             />
           </div>
           <Input
