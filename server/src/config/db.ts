@@ -1,42 +1,30 @@
-// import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
-// export const connectDB = async (): Promise<void> => {
-//   const uri = process.env.MONGODB_URI;
-//   if (!uri) throw new Error('MONGODB_URI is not defined in environment variables');
-//   try {
-//     await mongoose.connect(uri, { family: 4 });
-//     console.log('MongoDB connected');
-//   } catch (err) {
-//     console.error('MongoDB connection failed:', (err as Error).message);
-//     console.log('Server will continue running. Retrying in 10 seconds...');
-//     setTimeout(() => connectDB().catch(() => {}), 10000);
-//   }
-// };
+let isConnecting = false;
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
-//const uri = "mongodb+srv://nikhilpatil29032005:<db_password>@database.oo9xluo.mongodb.net/?appName=DataBase";
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error('MONGODB_URI is not defined in environment variables');
-  // try {
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
+export const connectDB = async (): Promise<void> => {
+  const uri = process.env.MONGODB_URI?.trim();
+
+  if (!uri) {
+    throw new Error('MONGODB_URI is not defined in environment variables');
   }
-});
 
-async function run() {
+  // Prevent duplicate in-flight connects when the server hot-reloads in dev mode.
+  if (isConnecting) return;
+  if (mongoose.connection.readyState === 1) return;
+
+  isConnecting = true;
+
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    await mongoose.connect(uri, {
+      family: 4,
+      serverSelectionTimeoutMS: 10000,
+    });
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error('MongoDB connection failed:', (err as Error).message);
+    throw err;
   } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    isConnecting = false;
   }
-}
-run().catch(console.dir);
+};
