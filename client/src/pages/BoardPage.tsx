@@ -1,71 +1,292 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import KanbanBoard from '../components/board/KanbanBoard';
+import BoardInsights from '../components/board/BoardInsights';
 import AddApplicationModal from '../components/application/AddApplicationModal';
 import SkeletonCard from '../components/ui/SkeletonCard';
-import Button from '../components/ui/Button';
+import { ShadButton } from '../components/shadcn/button';
+import { Separator } from '../components/shadcn/separator';
 import { useApplications } from '../hooks/useApplications';
 import { useAuth } from '../context/AuthContext';
-import { APPLICATION_STATUSES } from '../types';
+import { APPLICATION_STATUSES, type ApplicationStatus } from '../types';
+import { calculatePipelineStats, isFollowUpDue } from '../utils/applicationMetrics';
+import {
+  Briefcase,
+  Plus,
+  Download,
+  LogOut,
+  Search,
+  X,
+} from 'lucide-react';
+
+type StatusFilter = 'All' | ApplicationStatus;
+type SortMode = 'newest' | 'oldest' | 'company-asc' | 'company-desc';
+
+const toCsvValue = (value: string): string => `"${value.replace(/"/g, '""')}"`;
 
 export default function BoardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
+  const [followUpsOnly, setFollowUpsOnly] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>('newest');
+
   const { data: applications, isLoading, error } = useApplications();
   const { logout, user } = useAuth();
 
+  const allApplications = useMemo(() => applications ?? [], [applications]);
+  const stats = useMemo(
+    () => calculatePipelineStats(allApplications),
+    [allApplications]
+  );
+
+  const filteredApplications = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    const filtered = allApplications.filter((app) => {
+      const queryMatch =
+        normalizedQuery.length === 0 ||
+        [
+          app.company,
+          app.role,
+          app.location,
+          app.seniority,
+          app.status,
+          app.requiredSkills.join(' '),
+          app.niceToHaveSkills.join(' '),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(normalizedQuery);
+
+      const statusMatch = statusFilter === 'All' || app.status === statusFilter;
+      const followUpMatch = !followUpsOnly || isFollowUpDue(app);
+
+      return queryMatch && statusMatch && followUpMatch;
+    });
+
+    filtered.sort((a, b) => {
+      switch (sortMode) {
+        case 'oldest':
+          return new Date(a.dateApplied).getTime() - new Date(b.dateApplied).getTime();
+        case 'company-asc':
+          return a.company.localeCompare(b.company);
+        case 'company-desc':
+          return b.company.localeCompare(a.company);
+        case 'newest':
+        default:
+          return new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime();
+      }
+    });
+
+    return filtered;
+  }, [allApplications, query, statusFilter, followUpsOnly, sortMode]);
+
+  const hasActiveFilters =
+    query.trim().length > 0 || statusFilter !== 'All' || followUpsOnly;
+
+  const exportCsv = () => {
+    if (filteredApplications.length === 0) {
+      toast.error('No applications to export with current filters');
+      return;
+    }
+
+    const headers = [
+      'Company',
+      'Role',
+      'Status',
+      'Date Applied',
+      'Location',
+      'Seniority',
+      'Salary Range',
+      'JD Link',
+      'Required Skills',
+      'Nice To Have Skills',
+      'Notes',
+    ];
+
+    const rows = filteredApplications.map((app) =>
+      [
+        app.company,
+        app.role,
+        app.status,
+        app.dateApplied.slice(0, 10),
+        app.location ?? '',
+        app.seniority ?? '',
+        app.salaryRange ?? '',
+        app.jdLink ?? '',
+        app.requiredSkills.join(' | '),
+        app.niceToHaveSkills.join(' | '),
+        app.notes ?? '',
+      ]
+        .map((value) => toCsvValue(value))
+        .join(',')
+    );
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `applications-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('Applications exported to CSV');
+  };
+
+  const clearFilters = () => {
+    setQuery('');
+    setStatusFilter('All');
+    setFollowUpsOnly(false);
+    setSortMode('newest');
+  };
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* Navbar */}
-      <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold text-gray-900">Job Tracker</h1>
-          <span className="text-xs text-gray-400">{user?.email}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={() => setIsModalOpen(true)} size="sm">
-            + Add Application
-          </Button>
-          <Button variant="ghost" size="sm" onClick={logout}>
-            Sign Out
-          </Button>
+      <nav className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-lg dark:border-slate-800 dark:bg-slate-950/80">
+        <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between px-4 md:px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 dark:bg-white">
+              <Briefcase className="h-4 w-4 text-white dark:text-slate-900" />
+            </div>
+            <h1 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
+              Pipeline
+            </h1>
+            <Separator orientation="vertical" className="h-5 mx-1" />
+            <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:block">
+              {user?.email}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ShadButton variant="outline" size="sm" onClick={exportCsv}>
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </ShadButton>
+            <ShadButton size="sm" onClick={() => setIsModalOpen(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              Add
+            </ShadButton>
+            <ShadButton variant="ghost" size="sm" onClick={logout}>
+              <LogOut className="h-3.5 w-3.5" />
+            </ShadButton>
+          </div>
         </div>
       </nav>
 
-      {/* Board */}
-      <div className="flex-1 overflow-hidden p-6">
-        {isLoading ? (
-          <div className="flex gap-4 overflow-x-auto h-full">
+      <div className="mx-auto w-full max-w-[1600px] px-4 pb-6 pt-4 md:px-6 space-y-4">
+        {!isLoading && !error && <BoardInsights stats={stats} />}
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search company, role, skill..."
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition-colors focus:border-slate-400 focus:ring-1 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-slate-500"
+            />
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition-colors focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          >
+            <option value="All">All statuses</option>
             {APPLICATION_STATUSES.map((status) => (
-              <div key={status} className="w-72 flex-shrink-0 rounded-xl bg-gray-50">
-                <div className="p-3 border-b border-gray-200">
-                  <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
-                </div>
-                <div className="p-2 space-y-2">
-                  <SkeletonCard />
-                  <SkeletonCard />
-                </div>
-              </div>
+              <option key={status} value={status}>
+                {status}
+              </option>
             ))}
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-red-500">Failed to load applications. Please refresh.</p>
-          </div>
-        ) : applications && applications.length > 0 ? (
-          <KanbanBoard applications={applications} />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-24 h-24 mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-              <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
+          </select>
+
+          <select
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value as SortMode)}
+            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition-colors focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="company-asc">A-Z</option>
+            <option value="company-desc">Z-A</option>
+          </select>
+
+          <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={followUpsOnly}
+              onChange={(e) => setFollowUpsOnly(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-slate-300 dark:border-slate-600"
+            />
+            Follow-ups
+          </label>
+
+          {hasActiveFilters && (
+            <ShadButton variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </ShadButton>
+          )}
+        </div>
+
+        {/* Board */}
+        <div className="h-[calc(100vh-220px)] overflow-x-auto pb-4">
+          {isLoading ? (
+            <div className="grid grid-cols-5 gap-4 h-full min-w-[900px]">
+              {APPLICATION_STATUSES.map((status) => (
+                <div key={status} className="rounded-3xl border-2 border-dashed border-slate-200/50 dark:border-slate-700/30 p-3">
+                  <div className="px-2 py-3 mb-2">
+                    <div className="h-3 w-20 rounded bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <SkeletonCard />
+                    <SkeletonCard />
+                  </div>
+                </div>
+              ))}
             </div>
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">No applications yet</h2>
-            <p className="text-sm text-gray-500 mb-6">Add your first job application to get started</p>
-            <Button onClick={() => setIsModalOpen(true)}>
-              Add Your First Application
-            </Button>
-          </div>
-        )}
+          ) : error ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-sm font-medium text-red-500 dark:text-red-400">
+                Failed to load applications. Please refresh.
+              </p>
+            </div>
+          ) : allApplications.length > 0 ? (
+            filteredApplications.length > 0 ? (
+              <KanbanBoard applications={filteredApplications} />
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <h2 className="text-lg font-bold text-slate-700 dark:text-slate-300">No matching applications</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Try different filters or clear the current search.
+                </p>
+                <ShadButton variant="outline" className="mt-4" onClick={clearFilters}>
+                  Reset Filters
+                </ShadButton>
+              </div>
+            )
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 dark:bg-slate-800">
+                <Briefcase className="h-8 w-8 text-slate-300 dark:text-slate-600" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-700 dark:text-slate-300">No applications yet</h2>
+              <p className="mb-6 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Add your first job application to start tracking.
+              </p>
+              <ShadButton onClick={() => setIsModalOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Add Your First Application
+              </ShadButton>
+            </div>
+          )}
+        </div>
       </div>
 
       <AddApplicationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />

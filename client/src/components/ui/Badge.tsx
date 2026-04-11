@@ -1,11 +1,11 @@
 import type { ApplicationStatus } from '../../types';
 
 const STATUS_COLORS: Record<ApplicationStatus, string> = {
-  Applied: 'bg-blue-100 text-blue-800',
-  'Phone Screen': 'bg-yellow-100 text-yellow-800',
-  Interview: 'bg-purple-100 text-purple-800',
-  Offer: 'bg-green-100 text-green-800',
-  Rejected: 'bg-red-100 text-red-800',
+  Applied: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+  'Phone Screen': 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  Interview: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+  Offer: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  Rejected: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
 };
 
 interface BadgeProps {
@@ -15,7 +15,7 @@ interface BadgeProps {
 
 export default function Badge({ status, className = '' }: BadgeProps) {
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[status]} ${className}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${STATUS_COLORS[status]} ${className}`}>
       {status}
     </span>
   );
@@ -28,10 +28,10 @@ interface SkillBadgeProps {
 
 export function SkillBadge({ skill, variant = 'required' }: SkillBadgeProps) {
   const colors = variant === 'required'
-    ? 'bg-primary/10 text-primary'
-    : 'bg-gray-100 text-gray-600';
+    ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300'
+    : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400';
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colors}`}>
+    <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${colors}`}>
       {skill}
     </span>
   );

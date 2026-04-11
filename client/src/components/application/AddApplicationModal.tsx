@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -107,7 +107,7 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
       {step === 'paste' ? (
         <div className="space-y-4">
           <div>
-            <label htmlFor="jd-textarea" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="jd-textarea" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Paste Job Description
             </label>
             <textarea
@@ -115,10 +115,10 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
               value={jdText}
               onChange={(e) => setJdText(e.target.value)}
               placeholder="Paste the full job description here..."
-              className="w-full h-48 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+              className="w-full h-48 px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-teal-400 dark:focus:ring-teal-400/15 resize-none"
             />
             {parseError && (
-              <p className="mt-1 text-xs text-red-500">{parseError}</p>
+              <p className="mt-1 text-xs text-red-500 dark:text-red-400">{parseError}</p>
             )}
           </div>
           <div className="flex gap-3">
@@ -179,7 +179,7 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
             placeholder="https://..."
           />
           <div>
-            <label htmlFor="skills" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="skills" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Required Skills
             </label>
             <input
@@ -192,11 +192,11 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
                 }))
               }
               placeholder="React, TypeScript, Node.js"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-teal-400 dark:focus:ring-teal-400/15"
             />
           </div>
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="notes" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Notes
             </label>
             <textarea
@@ -204,7 +204,7 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
               value={formData.notes || ''}
               onChange={(e) => updateField('notes', e.target.value)}
               placeholder="Any notes about this application..."
-              className="w-full h-20 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+              className="w-full h-20 px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-teal-400 dark:focus:ring-teal-400/15 resize-none"
             />
           </div>
 

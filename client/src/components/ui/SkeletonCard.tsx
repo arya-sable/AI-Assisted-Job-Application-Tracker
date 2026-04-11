@@ -1,15 +1,15 @@
 export default function SkeletonCard() {
   return (
-    <div className="bg-white rounded-lg p-4 border border-gray-200 animate-pulse">
+    <div className="rounded-xl border border-slate-200/60 bg-white p-3.5 dark:border-slate-700/40 dark:bg-slate-800/60">
       <div className="flex justify-between items-start mb-3">
-        <div className="h-4 bg-gray-200 rounded w-24" />
-        <div className="h-5 bg-gray-200 rounded w-8" />
+        <div className="h-4 w-24 rounded-md animate-shimmer" />
+        <div className="h-5 w-8 rounded-md animate-shimmer" />
       </div>
-      <div className="h-4 bg-gray-200 rounded w-36 mb-2" />
-      <div className="h-3 bg-gray-200 rounded w-28 mb-3" />
-      <div className="flex gap-1">
-        <div className="h-5 bg-gray-200 rounded w-14" />
-        <div className="h-5 bg-gray-200 rounded w-18" />
+      <div className="h-4 w-36 rounded-md mb-2 animate-shimmer" />
+      <div className="h-3 w-28 rounded-md mb-3 animate-shimmer" />
+      <div className="flex gap-1.5">
+        <div className="h-5 w-14 rounded-md animate-shimmer" />
+        <div className="h-5 w-16 rounded-md animate-shimmer" />
       </div>
     </div>
   );
