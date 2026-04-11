@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
@@ -13,6 +13,39 @@ import ApplicationDetailPage from './pages/ApplicationDetailPage';
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 } },
 });
+
+function ThemedToaster() {
+  const { isDark } = useTheme();
+
+  return (
+    <Toaster
+      position="top-right"
+      toastOptions={{
+        className: 'theme-transition',
+        style: {
+          borderRadius: '12px',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontSize: '14px',
+          background: isDark ? '#1e293b' : '#ffffff',
+          color: isDark ? '#e2e8f0' : '#0f172a',
+          border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+        },
+        success: {
+          iconTheme: {
+            primary: '#0d9488',
+            secondary: isDark ? '#1e293b' : '#ffffff',
+          },
+        },
+        error: {
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: isDark ? '#1e293b' : '#ffffff',
+          },
+        },
+      }}
+    />
+  );
+}
 
 export default function App() {
   return (
@@ -34,17 +67,7 @@ export default function App() {
               />
             </Routes>
           </BrowserRouter>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              className: 'theme-transition',
-              style: {
-                borderRadius: '12px',
-                fontFamily: 'Inter, system-ui, sans-serif',
-                fontSize: '14px',
-              },
-            }}
-          />
+          <ThemedToaster />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

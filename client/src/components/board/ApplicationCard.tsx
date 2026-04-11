@@ -37,10 +37,10 @@ export default function ApplicationCard({ application, isDragging = false }: Pro
       style={style}
       {...attributes}
       {...listeners}
-      className={`group rounded-2xl border bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing transition-all dark:bg-slate-900 dark:border-slate-700/50 ${
+      className={`group rounded-2xl border bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing transition-all card-lift dark:bg-slate-900 dark:border-slate-700/50 animate-card-enter ${
         dragging
-          ? 'opacity-40 scale-95'
-          : 'hover:shadow-md'
+          ? 'opacity-40 scale-95 !shadow-none'
+          : ''
       }`}
       onClick={() => navigate(`/applications/${application._id}`)}
     >

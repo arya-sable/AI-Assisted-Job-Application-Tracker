@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import KanbanBoard from '../components/board/KanbanBoard';
 import BoardInsights from '../components/board/BoardInsights';
@@ -8,6 +8,7 @@ import { ShadButton } from '../components/shadcn/button';
 import { Separator } from '../components/shadcn/separator';
 import { useApplications } from '../hooks/useApplications';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { APPLICATION_STATUSES, type ApplicationStatus } from '../types';
 import { calculatePipelineStats, isFollowUpDue } from '../utils/applicationMetrics';
 import {
@@ -17,6 +18,8 @@ import {
   LogOut,
   Search,
   X,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 type StatusFilter = 'All' | ApplicationStatus;
@@ -30,9 +33,36 @@ export default function BoardPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
   const [followUpsOnly, setFollowUpsOnly] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('newest');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const { data: applications, isLoading, error } = useApplications();
   const { logout, user } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+
+  // Keyboard shortcuts
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Ignore when typing in an input/textarea
+    const tag = (e.target as HTMLElement).tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+    if (e.key === 'n' && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      setIsModalOpen(true);
+    }
+    if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      searchRef.current?.focus();
+    }
+    if (e.key === 'd' && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      toggleTheme();
+    }
+  }, [toggleTheme]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   const allApplications = useMemo(() => applications ?? [], [applications]);
   const stats = useMemo(
@@ -148,7 +178,7 @@ export default function BoardPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-lg dark:border-slate-800 dark:bg-slate-950/80">
+      <nav className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-lg dark:border-slate-800 dark:bg-slate-950/80 animate-slide-down">
         <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 dark:bg-white">
@@ -163,11 +193,14 @@ export default function BoardPage() {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <ShadButton variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8">
+              {isDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+            </ShadButton>
             <ShadButton variant="outline" size="sm" onClick={exportCsv}>
               <Download className="h-3.5 w-3.5" />
               Export
             </ShadButton>
-            <ShadButton size="sm" onClick={() => setIsModalOpen(true)}>
+            <ShadButton size="sm" onClick={() => setIsModalOpen(true)} title="Add application (N)">
               <Plus className="h-3.5 w-3.5" />
               Add
             </ShadButton>
@@ -186,10 +219,11 @@ export default function BoardPage() {
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
+              ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search company, role, skill..."
-              className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition-colors focus:border-slate-400 focus:ring-1 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-slate-500"
+              placeholder="Search company, role, skill...  ( / )"
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition-all input-focus-glow focus:border-slate-400 focus:ring-1 focus:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-slate-500"
             />
           </div>
 
@@ -258,19 +292,21 @@ export default function BoardPage() {
               </p>
             </div>
           ) : allApplications.length > 0 ? (
-            filteredApplications.length > 0 ? (
-              <KanbanBoard applications={filteredApplications} />
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <h2 className="text-lg font-bold text-slate-700 dark:text-slate-300">No matching applications</h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Try different filters or clear the current search.
-                </p>
-                <ShadButton variant="outline" className="mt-4" onClick={clearFilters}>
-                  Reset Filters
-                </ShadButton>
+            <div className="flex flex-col h-full gap-3">
+              {filteredApplications.length === 0 && hasActiveFilters && (
+                <div className="flex items-center justify-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800/40 dark:bg-amber-900/10">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    No applications match the current filters.
+                  </p>
+                  <ShadButton variant="outline" size="sm" onClick={clearFilters} className="h-7 text-xs">
+                    Reset Filters
+                  </ShadButton>
+                </div>
+              )}
+              <div className="flex-1 min-h-0">
+                <KanbanBoard applications={filteredApplications} />
               </div>
-            )
+            </div>
           ) : (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 dark:bg-slate-800">

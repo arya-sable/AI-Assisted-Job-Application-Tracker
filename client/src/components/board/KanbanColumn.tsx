@@ -25,8 +25,8 @@ export default function KanbanColumn({ status, applications, index }: Props) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-64 flex-shrink-0 flex-col rounded-3xl border-2 border-dashed p-3 transition-all duration-200 ${config.bgColor} ${
-        isOver ? 'border-slate-400/50 bg-slate-100/80 dark:border-slate-400/40 dark:bg-slate-800/60' : ''
+      className={`flex w-64 flex-shrink-0 flex-col rounded-3xl border-2 border-dashed p-3 transition-all duration-200 animate-column-slide ${config.bgColor} ${
+        isOver ? 'border-slate-400/50 bg-slate-100/80 scale-[1.01] dark:border-slate-400/40 dark:bg-slate-800/60' : ''
       }`}
       style={{ animationDelay: `${index * 0.06}s` }}
     >

@@ -39,8 +39,8 @@ export default function LoginForm() {
   return (
     <div className="flex min-h-screen">
       {/* Left branding panel */}
-      <div className="hidden w-1/2 flex-col justify-center bg-slate-50 px-16 lg:flex dark:bg-slate-900">
-        <div className="max-w-md">
+      <div className="hidden w-1/2 flex-col items-center justify-center bg-slate-50 px-16 lg:flex dark:bg-slate-900">
+        <div className="w-full max-w-md animate-slide-in-left">
           <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 dark:bg-slate-800 dark:ring-slate-700">
             <Briefcase className="h-7 w-7 text-slate-700 dark:text-slate-300" />
           </div>
@@ -71,7 +71,7 @@ export default function LoginForm() {
 
       {/* Right form panel */}
       <div className="flex w-full flex-col items-center justify-center bg-white px-6 lg:w-1/2 dark:bg-slate-950">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm animate-fade-in-up">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Welcome back</h2>
           <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
             Enter your credentials to access your workspace.

@@ -30,7 +30,7 @@ const ShadInput = React.forwardRef<HTMLInputElement, ShadInputProps>(
             type={type}
             id={inputId}
             className={cn(
-              "flex h-11 w-full rounded-xl border bg-white px-3 py-2 text-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus-visible:ring-slate-500",
+              "flex h-11 w-full rounded-xl border bg-white px-3 py-2 text-sm transition-all input-focus-glow file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus-visible:ring-slate-500",
               error
                 ? "border-red-400 focus-visible:ring-red-400 dark:border-red-500"
                 : "border-slate-200 dark:border-slate-700",

@@ -139,6 +139,38 @@ h1, h2, h3, h4, h5, h6 {
   100% { transform: scale(1); }
 }
 
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.8); }
+  70% { transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes subtlePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-2deg); }
+  75% { transform: rotate(2deg); }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(99, 102, 241, 0.2); }
+  50% { border-color: rgba(99, 102, 241, 0.5); }
+}
+
 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out both; }
 .animate-fade-in { animation: fadeIn 0.4s ease-out both; }
 .animate-scale-in { animation: scaleIn 0.3s ease-out both; }
@@ -149,6 +181,37 @@ h1, h2, h3, h4, h5, h6 {
 .animate-pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
 .animate-gentle-bounce { animation: gentleBounce 2s ease-in-out infinite; }
 .animate-counter-pop { animation: counterPop 0.3s ease-out; }
+.animate-slide-in-left { animation: slideInLeft 0.5s ease-out both; }
+.animate-slide-in-right { animation: slideInRight 0.5s ease-out both; }
+.animate-pop-in { animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-subtle-pulse { animation: subtlePulse 2s ease-in-out infinite; }
+.animate-wiggle { animation: wiggle 0.3s ease-in-out; }
+.animate-border-glow { animation: borderGlow 2s ease-in-out infinite; }
+
+/* Micro-interaction: input focus ring glow */
+.input-focus-glow:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+.dark .input-focus-glow:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* Micro-interaction: button press */
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Micro-interaction: card lift on hover */
+.card-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.1);
+}
+.dark .card-lift:hover {
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.3);
+}
 
 .animate-shimmer {
   background: linear-gradient(90deg, #e2e8f0 0%, #f1f5f9 50%, #e2e8f0 100%);

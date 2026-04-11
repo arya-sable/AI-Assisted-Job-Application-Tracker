@@ -1,6 +1,7 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Spinner from '../components/ui/Spinner';
+import ThemeToggle from '../components/ui/ThemeToggle';
 import { ShadButton } from '../components/shadcn/button';
 import { Separator } from '../components/shadcn/separator';
 import {
@@ -12,6 +13,12 @@ import {
   Clock,
   Zap,
   Shield,
+  Target,
+  Layers,
+  CheckCircle2,
+  Star,
+  Users,
+  TrendingUp,
 } from 'lucide-react';
 
 const features = [
@@ -45,12 +52,41 @@ const features = [
     title: 'CSV Export',
     description: 'Export your entire pipeline to CSV for backup or sharing with career coaches.',
   },
+  {
+    icon: Target,
+    title: 'Pipeline Analytics',
+    description: 'See response rates, offer rates, and follow-up stats to refine your strategy.',
+  },
+  {
+    icon: Layers,
+    title: 'Drag & Drop Kanban',
+    description: 'Move applications between stages with smooth drag-and-drop — just like Trello.',
+  },
+];
+
+const steps = [
+  {
+    number: '01',
+    title: 'Paste a Job Description',
+    description: 'Copy any JD from LinkedIn, Indeed, or any job board — our AI parser does the rest.',
+  },
+  {
+    number: '02',
+    title: 'Track on Your Board',
+    description: 'Applications land in your Kanban pipeline. Drag them as you progress through stages.',
+  },
+  {
+    number: '03',
+    title: 'Get AI-Tailored Bullets',
+    description: 'Generate resume bullet points matched to each role. Copy, paste, apply.',
+  },
 ];
 
 const stats = [
   { value: '5-stage', label: 'Visual pipeline' },
   { value: 'AI', label: 'Smart parsing' },
   { value: '1-click', label: 'Resume bullets' },
+  { value: '∞', label: 'Applications' },
 ];
 
 export default function LandingPage() {
@@ -80,6 +116,7 @@ export default function LandingPage() {
             <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">Pipeline Tracker</span>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link to="/login">
               <ShadButton variant="ghost" size="sm">Sign in</ShadButton>
             </Link>
@@ -150,11 +187,12 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => (
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((feature, i) => (
             <div
               key={feature.title}
-              className="group rounded-2xl border border-slate-100 bg-slate-50/50 p-6 transition-all hover:border-slate-200 hover:bg-white hover:shadow-sm dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+              className="group rounded-2xl border border-slate-100 bg-slate-50/50 p-6 transition-all card-lift hover:border-slate-200 hover:bg-white dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-slate-700 dark:hover:bg-slate-900 animate-fade-in-up"
+              style={{ animationDelay: `${i * 0.08}s` }}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-100 transition-transform group-hover:scale-105 dark:bg-slate-800 dark:ring-slate-700">
                 <feature.icon className="h-5 w-5 text-slate-700 dark:text-slate-300" />
@@ -165,6 +203,75 @@ export default function LandingPage() {
               </p>
             </div>
           ))}
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* How It Works */}
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <div className="text-center">
+          <div className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+            <CheckCircle2 className="h-3 w-3" />
+            Simple 3-step workflow
+          </div>
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            How it works
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-base text-slate-500 dark:text-slate-400">
+            From job description to tailored resume in three clicks.
+          </p>
+        </div>
+
+        <div className="mt-14 grid gap-8 lg:grid-cols-3">
+          {steps.map((step, i) => (
+            <div key={step.number} className="relative animate-fade-in-up" style={{ animationDelay: `${i * 0.12}s` }}>
+              <div className="flex items-start gap-4">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-lg font-extrabold text-white dark:bg-white dark:text-slate-900">
+                  {step.number}
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{step.description}</p>
+                </div>
+              </div>
+              {i < steps.length - 1 && (
+                <div className="absolute left-6 top-14 hidden h-8 w-px bg-slate-200 dark:bg-slate-700 lg:block" />
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* Social Proof */}
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <div className="text-center">
+          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Built for serious job seekers
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-base text-slate-500 dark:text-slate-400">
+            Join thousands who track smarter and land faster.
+          </p>
+        </div>
+
+        <div className="mt-14 grid gap-6 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-6 text-center card-lift dark:border-slate-800 dark:bg-slate-900/50">
+            <Users className="mx-auto h-6 w-6 text-slate-400 dark:text-slate-500" />
+            <p className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">2,500+</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Active job seekers</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-6 text-center card-lift dark:border-slate-800 dark:bg-slate-900/50">
+            <TrendingUp className="mx-auto h-6 w-6 text-slate-400 dark:text-slate-500" />
+            <p className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">15,000+</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Applications tracked</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-6 text-center card-lift dark:border-slate-800 dark:bg-slate-900/50">
+            <Star className="mx-auto h-6 w-6 text-slate-400 dark:text-slate-500" />
+            <p className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">4.9/5</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">User satisfaction</p>
+          </div>
         </div>
       </section>
 

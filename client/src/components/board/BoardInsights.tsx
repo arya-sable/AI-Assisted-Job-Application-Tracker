@@ -36,14 +36,15 @@ export default function BoardInsights({ stats }: Props) {
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {insightCards.map((card) => (
+      {insightCards.map((card, i) => (
         <div
           key={card.label}
-          className={`rounded-xl border p-4 transition-colors ${
+          className={`rounded-xl border p-4 transition-all card-lift animate-pop-in ${
             card.alert
               ? 'border-amber-200 bg-amber-50 dark:border-amber-700/40 dark:bg-amber-900/10'
               : 'border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/50'
           }`}
+          style={{ animationDelay: `${i * 0.08}s` }}
         >
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
