@@ -270,9 +270,9 @@ export default function BoardPage() {
         </div>
 
         {/* Board */}
-        <div className="h-[calc(100vh-220px)] overflow-x-auto pb-4">
+        <div className="h-[calc(100vh-200px)] overflow-x-auto pb-4">
           {isLoading ? (
-            <div className="grid grid-cols-5 gap-4 h-full min-w-[900px]">
+            <div className="grid grid-cols-5 gap-2.5 h-full min-w-[900px]">
               {APPLICATION_STATUSES.map((status) => (
                 <div key={status} className="rounded-3xl border-2 border-dashed border-slate-200/50 dark:border-slate-700/30 p-3">
                   <div className="px-2 py-3 mb-2">

@@ -25,13 +25,13 @@ export default function KanbanColumn({ status, applications, index }: Props) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-64 flex-shrink-0 flex-col rounded-3xl border-2 border-dashed p-3 transition-all duration-200 animate-column-slide ${config.bgColor} ${
+      className={`flex min-w-0 flex-col rounded-2xl border-2 border-dashed p-2.5 transition-all duration-200 animate-column-slide ${config.bgColor} ${
         isOver ? 'border-slate-400/50 bg-slate-100/80 scale-[1.01] dark:border-slate-400/40 dark:bg-slate-800/60' : ''
       }`}
       style={{ animationDelay: `${index * 0.06}s` }}
     >
       {/* Column Header */}
-      <div className="flex items-center gap-2 px-2 py-3 mb-2">
+      <div className="flex items-center gap-2 px-2 py-2 mb-1">
         <div className={`h-2.5 w-2.5 rounded-full ${config.color}`} />
         <span className="text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-300">
           {status}
