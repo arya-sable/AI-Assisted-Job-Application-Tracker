@@ -1,0 +1,17 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "mkdir": true,
+        "npm install": true,
+        "npm create": true,
+        "npx tailwindcss": true,
+        "npx tsc": true,
+        "npx vite": true,
+        "/^cd \"c:/Users/Nikhil/Desktop/AI-Assisted-Job-Application-Tracker/client\" ; node -e \"const m = require\\('@dnd-kit/core/dist/core\\.esm\\.js'\\); console\\.log\\(Object\\.keys\\(m\\)\\.filter\\(k => k\\.includes\\('Drag'\\)\\)\\.join\\('\\\\n'\\)\\)\" 2>&1 \\| head -20$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "npm uninstall": true,
+        "nslookup": true,
+        "true": true
+    }
+}

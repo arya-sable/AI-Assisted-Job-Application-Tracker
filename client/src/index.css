@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #01696f;
+  --color-primary-hover: #0c4e54;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
