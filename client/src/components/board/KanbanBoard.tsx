@@ -41,15 +41,23 @@ export default function KanbanBoard({ applications }: Props) {
     if (!over) return;
 
     const draggedId = active.id as string;
-    const newStatus = over.id as ApplicationStatus;
-
-    if (!APPLICATION_STATUSES.includes(newStatus)) return;
-
     const app = applications.find((a) => a._id === draggedId);
+    const overId = over.id as string;
+    const overApplication = applications.find((a) => a._id === overId);
+    const newStatus = APPLICATION_STATUSES.includes(overId as ApplicationStatus)
+      ? (overId as ApplicationStatus)
+      : overApplication?.status;
+
+    if (!newStatus) return;
     if (!app || app.status === newStatus) return;
 
-    updateApplication({ id: draggedId, data: { status: newStatus } });
-    toast.success(`Moved ${app.company} to ${newStatus}`);
+    updateApplication(
+      { id: draggedId, data: { status: newStatus } },
+      {
+        onSuccess: () => toast.success(`Moved ${app.company} to ${newStatus}`),
+        onError: () => toast.error(`Could not move ${app.company}`),
+      }
+    );
   };
 
   return (
