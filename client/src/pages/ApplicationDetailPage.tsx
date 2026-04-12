@@ -12,7 +12,7 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 import { APPLICATION_PRIORITIES, APPLICATION_STATUSES } from '../types';
 import type { ApplicationPriority, ApplicationStatus } from '../types';
 import { formatDate } from '../utils/formatDate';
-import { getDaysUntil } from '../utils/applicationMetrics';
+import { calculateApplicationScore, getDaysUntil, getUpcomingEvent } from '../utils/applicationMetrics';
 import { normalizeSalaryRange } from '../utils/salaryFormatting';
 import toast from 'react-hot-toast';
 
@@ -49,6 +49,10 @@ export default function ApplicationDetailPage() {
     contactEmail: '',
     nextAction: '',
     nextActionDate: '',
+    isFavorite: false,
+    deadlineDate: '',
+    interviewDate: '',
+    interviewMode: '',
   });
 
   const startEditing = () => {
@@ -72,6 +76,10 @@ export default function ApplicationDetailPage() {
       contactEmail: application.contactEmail || '',
       nextAction: application.nextAction || '',
       nextActionDate: application.nextActionDate || '',
+      isFavorite: Boolean(application.isFavorite),
+      deadlineDate: application.deadlineDate || '',
+      interviewDate: application.interviewDate || '',
+      interviewMode: application.interviewMode || '',
     });
 
     setIsEditing(true);
@@ -106,6 +114,17 @@ export default function ApplicationDetailPage() {
     }
   };
 
+  const toggleFavorite = async () => {
+    if (!id || !application) return;
+
+    try {
+      await updateApp({ id, data: { isFavorite: !application.isFavorite } });
+      toast.success(application.isFavorite ? 'Removed from shortlist' : 'Added to shortlist');
+    } catch {
+      toast.error('Failed to update shortlist');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-900">
@@ -125,6 +144,8 @@ export default function ApplicationDetailPage() {
 
   const displaySalaryRange = normalizeSalaryRange(application.salaryRange || '', application.location || '');
   const priority = application.priority ?? 'Medium';
+  const score = calculateApplicationScore(application);
+  const upcomingEvent = getUpcomingEvent(application);
   const nextActionDays = getDaysUntil(application.nextActionDate);
   const nextActionTiming = nextActionDays === null
     ? ''
@@ -149,9 +170,14 @@ export default function ApplicationDetailPage() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {!isEditing && (
-            <Button variant="secondary" size="sm" onClick={startEditing}>
-              Edit
-            </Button>
+            <>
+              <Button variant="secondary" size="sm" onClick={toggleFavorite}>
+                {application.isFavorite ? 'Unshortlist' : 'Shortlist'}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={startEditing}>
+                Edit
+              </Button>
+            </>
           )}
           <Button variant="danger" size="sm" onClick={() => setShowDeleteConfirm(true)}>
             Delete
@@ -198,6 +224,15 @@ export default function ApplicationDetailPage() {
                 placeholder="LinkedIn, referral, careers page"
               />
             </div>
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
+              <span>Pin to shortlist</span>
+              <input
+                type="checkbox"
+                checked={formData.isFavorite}
+                onChange={(e) => setFormData({ ...formData, isFavorite: e.target.checked })}
+                className="h-4 w-4 accent-teal-600"
+              />
+            </label>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="status-select" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Status</label>
@@ -266,6 +301,26 @@ export default function ApplicationDetailPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Input
+                label="Application Deadline"
+                type="date"
+                value={formData.deadlineDate}
+                onChange={(e) => setFormData({ ...formData, deadlineDate: e.target.value })}
+              />
+              <Input
+                label="Interview Date"
+                type="date"
+                value={formData.interviewDate}
+                onChange={(e) => setFormData({ ...formData, interviewDate: e.target.value })}
+              />
+            </div>
+            <Input
+              label="Interview Mode"
+              value={formData.interviewMode}
+              onChange={(e) => setFormData({ ...formData, interviewMode: e.target.value })}
+              placeholder="Zoom, phone, onsite, take-home"
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
                 label="Next Action"
                 value={formData.nextAction}
                 onChange={(e) => setFormData({ ...formData, nextAction: e.target.value })}
@@ -314,6 +369,14 @@ export default function ApplicationDetailPage() {
                 <p className="text-lg text-slate-500 dark:text-slate-400">{application.role}</p>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
+                {application.isFavorite && (
+                  <span className="inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-0.5 text-xs font-bold text-yellow-700 dark:border-yellow-900/40 dark:bg-yellow-900/20 dark:text-yellow-300">
+                    Shortlisted
+                  </span>
+                )}
+                <span className="inline-flex items-center rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-xs font-bold text-teal-700 dark:border-teal-900/40 dark:bg-teal-900/20 dark:text-teal-300">
+                  Score {score}
+                </span>
                 <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${PRIORITY_BADGE_CLASSES[priority]}`}>
                   {priority} priority
                 </span>
@@ -322,6 +385,21 @@ export default function ApplicationDetailPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-y-4 text-sm mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/30">
+              {upcomingEvent && (
+                <div className="col-span-2 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 dark:border-teal-800/40 dark:bg-teal-900/10">
+                  <span className="text-slate-400 dark:text-slate-500">Upcoming</span>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">
+                    {upcomingEvent.label} on {formatDate(`${upcomingEvent.date}T00:00:00`)}
+                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-teal-600 dark:text-teal-300">
+                    {upcomingEvent.daysUntil < 0
+                      ? `${Math.abs(upcomingEvent.daysUntil)} days overdue`
+                      : upcomingEvent.daysUntil === 0
+                        ? 'Today'
+                        : `In ${upcomingEvent.daysUntil} days`}
+                  </p>
+                </div>
+              )}
               <div>
                 <span className="text-slate-400 dark:text-slate-500">Priority</span>
                 <p className="font-medium text-slate-700 dark:text-slate-200">{priority}</p>
@@ -346,6 +424,27 @@ export default function ApplicationDetailPage() {
                 <div>
                   <span className="text-slate-400 dark:text-slate-500">Salary</span>
                   <p className="font-medium text-slate-700 dark:text-slate-200">{displaySalaryRange}</p>
+                </div>
+              )}
+              {application.deadlineDate && (
+                <div>
+                  <span className="text-slate-400 dark:text-slate-500">Application Deadline</span>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">
+                    {formatDate(`${application.deadlineDate}T00:00:00`)}
+                  </p>
+                </div>
+              )}
+              {(application.interviewDate || application.interviewMode) && (
+                <div>
+                  <span className="text-slate-400 dark:text-slate-500">Interview</span>
+                  {application.interviewDate && (
+                    <p className="font-medium text-slate-700 dark:text-slate-200">
+                      {formatDate(`${application.interviewDate}T00:00:00`)}
+                    </p>
+                  )}
+                  {application.interviewMode && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{application.interviewMode}</p>
+                  )}
                 </div>
               )}
               {application.jobSource && (

@@ -11,7 +11,16 @@ import { useApplications } from '../hooks/useApplications';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { APPLICATION_PRIORITIES, APPLICATION_STATUSES, type ApplicationPriority, type ApplicationStatus } from '../types';
-import { calculatePipelineStats, getDaysSince, getDaysUntil, isFollowUpDue, PRIORITY_WEIGHT } from '../utils/applicationMetrics';
+import {
+  calculateApplicationScore,
+  calculatePipelineStats,
+  getDaysSince,
+  getDaysUntil,
+  getUpcomingEvent,
+  hasUpcomingEvent,
+  isFollowUpDue,
+  PRIORITY_WEIGHT,
+} from '../utils/applicationMetrics';
 import {
   Briefcase,
   Plus,
@@ -23,11 +32,23 @@ import {
   Moon,
   Clock3,
   ArrowRight,
+  Star,
+  CalendarDays,
 } from 'lucide-react';
 
 type StatusFilter = 'All' | ApplicationStatus;
 type PriorityFilter = 'All' | ApplicationPriority;
-type SortMode = 'newest' | 'oldest' | 'company-asc' | 'company-desc' | 'priority' | 'next-action';
+type SortMode =
+  | 'newest'
+  | 'oldest'
+  | 'company-asc'
+  | 'company-desc'
+  | 'priority'
+  | 'next-action'
+  | 'deadline'
+  | 'interview'
+  | 'upcoming'
+  | 'score';
 
 const toCsvValue = (value: string): string => `"${value.replace(/"/g, '""')}"`;
 
@@ -38,6 +59,8 @@ export default function BoardPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('All');
   const [followUpsOnly, setFollowUpsOnly] = useState(false);
+  const [shortlistOnly, setShortlistOnly] = useState(false);
+  const [upcomingOnly, setUpcomingOnly] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('newest');
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -93,6 +116,7 @@ export default function BoardPage() {
           app.contactName,
           app.contactEmail,
           app.nextAction,
+          app.interviewMode,
           app.requiredSkills.join(' '),
           app.niceToHaveSkills.join(' '),
         ]
@@ -104,14 +128,19 @@ export default function BoardPage() {
       const statusMatch = statusFilter === 'All' || app.status === statusFilter;
       const priorityMatch = priorityFilter === 'All' || (app.priority ?? 'Medium') === priorityFilter;
       const followUpMatch = !followUpsOnly || isFollowUpDue(app);
+      const shortlistMatch = !shortlistOnly || Boolean(app.isFavorite);
+      const upcomingMatch = !upcomingOnly || hasUpcomingEvent(app);
 
-      return queryMatch && statusMatch && priorityMatch && followUpMatch;
+      return queryMatch && statusMatch && priorityMatch && followUpMatch && shortlistMatch && upcomingMatch;
     });
 
     filtered.sort((a, b) => {
+      const aDate = new Date(a.dateApplied).getTime();
+      const bDate = new Date(b.dateApplied).getTime();
+
       switch (sortMode) {
         case 'oldest':
-          return new Date(a.dateApplied).getTime() - new Date(b.dateApplied).getTime();
+          return aDate - bDate;
         case 'company-asc':
           return a.company.localeCompare(b.company);
         case 'company-desc':
@@ -119,21 +148,38 @@ export default function BoardPage() {
         case 'priority':
           return (
             PRIORITY_WEIGHT[b.priority ?? 'Medium'] - PRIORITY_WEIGHT[a.priority ?? 'Medium'] ||
-            new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
+            bDate - aDate
           );
         case 'next-action': {
           const aDays = getDaysUntil(a.nextActionDate) ?? Number.POSITIVE_INFINITY;
           const bDays = getDaysUntil(b.nextActionDate) ?? Number.POSITIVE_INFINITY;
-          return aDays - bDays || new Date(a.dateApplied).getTime() - new Date(b.dateApplied).getTime();
+          return aDays - bDays || aDate - bDate;
         }
+        case 'deadline': {
+          const aDays = getDaysUntil(a.deadlineDate) ?? Number.POSITIVE_INFINITY;
+          const bDays = getDaysUntil(b.deadlineDate) ?? Number.POSITIVE_INFINITY;
+          return aDays - bDays || aDate - bDate;
+        }
+        case 'interview': {
+          const aDays = getDaysUntil(a.interviewDate) ?? Number.POSITIVE_INFINITY;
+          const bDays = getDaysUntil(b.interviewDate) ?? Number.POSITIVE_INFINITY;
+          return aDays - bDays || aDate - bDate;
+        }
+        case 'upcoming': {
+          const aEventDays = getUpcomingEvent(a)?.daysUntil ?? Number.POSITIVE_INFINITY;
+          const bEventDays = getUpcomingEvent(b)?.daysUntil ?? Number.POSITIVE_INFINITY;
+          return aEventDays - bEventDays || aDate - bDate;
+        }
+        case 'score':
+          return calculateApplicationScore(b) - calculateApplicationScore(a) || bDate - aDate;
         case 'newest':
         default:
-          return new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime();
+          return bDate - aDate;
       }
     });
 
     return filtered;
-  }, [allApplications, query, statusFilter, priorityFilter, followUpsOnly, sortMode]);
+  }, [allApplications, query, statusFilter, priorityFilter, followUpsOnly, shortlistOnly, upcomingOnly, sortMode]);
 
   const followUpQueue = useMemo(
     () =>
@@ -150,7 +196,12 @@ export default function BoardPage() {
   const nextFollowUp = followUpQueue[0];
 
   const hasActiveFilters =
-    query.trim().length > 0 || statusFilter !== 'All' || priorityFilter !== 'All' || followUpsOnly;
+    query.trim().length > 0 ||
+    statusFilter !== 'All' ||
+    priorityFilter !== 'All' ||
+    followUpsOnly ||
+    shortlistOnly ||
+    upcomingOnly;
 
   const exportCsv = () => {
     if (filteredApplications.length === 0) {
@@ -163,10 +214,15 @@ export default function BoardPage() {
       'Role',
       'Status',
       'Priority',
+      'Shortlisted',
+      'Score',
       'Date Applied',
       'Location',
       'Seniority',
       'Salary Range',
+      'Application Deadline',
+      'Interview Date',
+      'Interview Mode',
       'Source',
       'Contact',
       'Contact Email',
@@ -184,10 +240,15 @@ export default function BoardPage() {
         app.role,
         app.status,
         app.priority ?? 'Medium',
+        app.isFavorite ? 'Yes' : 'No',
+        String(calculateApplicationScore(app)),
         app.dateApplied.slice(0, 10),
         app.location ?? '',
         app.seniority ?? '',
         app.salaryRange ?? '',
+        app.deadlineDate ?? '',
+        app.interviewDate ?? '',
+        app.interviewMode ?? '',
         app.jobSource ?? '',
         app.contactName ?? '',
         app.contactEmail ?? '',
@@ -230,6 +291,8 @@ export default function BoardPage() {
       setQuery('');
       setStatusFilter('All');
       setPriorityFilter('All');
+      setShortlistOnly(false);
+      setUpcomingOnly(false);
       setSortMode('next-action');
       toast.success(
         `Showing ${followUpQueue.length} follow-up${followUpQueue.length === 1 ? '' : 's'} due`
@@ -251,6 +314,8 @@ export default function BoardPage() {
     setStatusFilter('All');
     setPriorityFilter('All');
     setFollowUpsOnly(false);
+    setShortlistOnly(false);
+    setUpcomingOnly(false);
     setSortMode('newest');
   };
 
@@ -358,7 +423,41 @@ export default function BoardPage() {
             <option value="company-desc">Z-A</option>
             <option value="priority">Priority</option>
             <option value="next-action">Next action</option>
+            <option value="deadline">Deadline</option>
+            <option value="interview">Interview</option>
+            <option value="upcoming">Upcoming event</option>
+            <option value="score">Score</option>
           </select>
+
+          <ShadButton
+            type="button"
+            variant={shortlistOnly ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShortlistOnly((current) => !current)}
+            className="h-9"
+            title="Show shortlisted applications"
+          >
+            <Star className="h-3.5 w-3.5" />
+            Shortlist
+          </ShadButton>
+
+          <ShadButton
+            type="button"
+            variant={upcomingOnly ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => {
+              setUpcomingOnly((current) => {
+                const next = !current;
+                if (next) setSortMode('upcoming');
+                return next;
+              });
+            }}
+            className="h-9"
+            title="Show interviews, deadlines, and next actions in the next 7 days"
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            Upcoming
+          </ShadButton>
 
           <ShadButton
             type="button"

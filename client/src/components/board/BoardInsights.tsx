@@ -1,5 +1,5 @@
 import type { PipelineStats } from '../../utils/applicationMetrics';
-import { BarChart3, TrendingUp, Trophy, Clock, Flag } from 'lucide-react';
+import { BarChart3, TrendingUp, Trophy, Clock, Flag, Star, CalendarDays, Gauge } from 'lucide-react';
 
 interface Props {
   stats: PipelineStats;
@@ -39,23 +39,43 @@ export default function BoardInsights({
       icon: Flag,
     },
     {
+      label: 'Shortlist',
+      value: stats.shortlisted,
+      helper: stats.shortlisted > 0 ? 'Saved leads' : 'Nothing pinned',
+      alert: stats.shortlisted > 0,
+      icon: Star,
+    },
+    {
+      label: 'Upcoming',
+      value: stats.upcomingEvents,
+      helper: stats.upcomingEvents > 0 ? 'Next 7 days' : 'No events',
+      alert: stats.upcomingEvents > 0,
+      icon: CalendarDays,
+    },
+    {
+      label: 'Score',
+      value: `${stats.averageScore}`,
+      helper: 'Avg health',
+      icon: Gauge,
+    },
+    {
       label: 'Follow-ups',
       value: stats.followUpsDue,
-      helper: stats.nextActionsDue > 0 ? `${stats.nextActionsDue} scheduled` : 'All clear',
+      helper: stats.nextActionsDue > 0 ? `${stats.nextActionsDue} due now` : 'All clear',
       alert: stats.followUpsDue > 0,
       icon: Clock,
     },
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
       {insightCards.map((card, i) => (
         (() => {
           const isFollowUpsCard = card.label === 'Follow-ups';
           const isInteractive = isFollowUpsCard && Boolean(onFollowUpsClick);
           const isActive = isFollowUpsCard && followUpsActive;
 
-          const className = `rounded-xl border p-4 transition-all card-lift animate-pop-in text-left ${
+          const className = `min-h-[88px] rounded-xl border p-3 transition-all card-lift animate-pop-in text-left ${
             card.alert
               ? 'border-amber-200 bg-amber-50 dark:border-amber-700/40 dark:bg-amber-900/10'
               : 'border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/50'
@@ -71,7 +91,7 @@ export default function BoardInsights({
                 </p>
                 <card.icon className={`h-4 w-4 ${card.alert ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600'}`} />
               </div>
-              <p className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white">{card.value}</p>
+              <p className="mt-1.5 text-2xl font-extrabold text-slate-900 dark:text-white">{card.value}</p>
               <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">{card.helper}</p>
             </>
           );

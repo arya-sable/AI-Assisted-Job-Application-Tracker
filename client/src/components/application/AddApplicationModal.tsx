@@ -40,6 +40,10 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
     contactEmail: '',
     nextAction: '',
     nextActionDate: '',
+    isFavorite: false,
+    deadlineDate: '',
+    interviewDate: '',
+    interviewMode: '',
   });
 
   const handleParse = async () => {
@@ -57,6 +61,7 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
         requiredSkills: result.requiredSkills,
         niceToHaveSkills: result.niceToHaveSkills,
         seniority: result.seniority,
+        salaryRange: normalizeSalaryRange(result.salaryRange || '', result.location || prev.location || ''),
       }));
       setResumeSuggestions(result.resumeSuggestions);
       setStep('form');
@@ -110,6 +115,10 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
       contactEmail: '',
       nextAction: '',
       nextActionDate: '',
+      isFavorite: false,
+      deadlineDate: '',
+      interviewDate: '',
+      interviewMode: '',
     });
     onClose();
   };
@@ -187,6 +196,15 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
               placeholder="LinkedIn, referral, careers page"
             />
           </div>
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
+            <span>Pin to shortlist</span>
+            <input
+              type="checkbox"
+              checked={Boolean(formData.isFavorite)}
+              onChange={(e) => setFormData((prev) => ({ ...prev, isFavorite: e.target.checked }))}
+              className="h-4 w-4 accent-teal-600"
+            />
+          </label>
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Location"
@@ -229,6 +247,26 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
               placeholder="e.g. ₹12 LPA - ₹18 LPA"
             />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Application Deadline"
+              type="date"
+              value={formData.deadlineDate || ''}
+              onChange={(e) => updateField('deadlineDate', e.target.value)}
+            />
+            <Input
+              label="Interview Date"
+              type="date"
+              value={formData.interviewDate || ''}
+              onChange={(e) => updateField('interviewDate', e.target.value)}
+            />
+          </div>
+          <Input
+            label="Interview Mode"
+            value={formData.interviewMode || ''}
+            onChange={(e) => updateField('interviewMode', e.target.value)}
+            placeholder="Zoom, phone, onsite, take-home"
+          />
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Next Action"

@@ -32,6 +32,10 @@ export interface Application {
   contactEmail?: string;
   nextAction?: string;
   nextActionDate?: string | null;
+  isFavorite?: boolean;
+  deadlineDate?: string | null;
+  interviewDate?: string | null;
+  interviewMode?: string;
   resumeSuggestions: string[];
   createdAt: string;
   updatedAt: string;
@@ -55,6 +59,10 @@ export interface CreateApplicationInput {
   contactEmail?: string;
   nextAction?: string;
   nextActionDate?: string | null;
+  isFavorite?: boolean;
+  deadlineDate?: string | null;
+  interviewDate?: string | null;
+  interviewMode?: string;
   resumeSuggestions?: string[];
 }
 
@@ -70,6 +78,7 @@ export interface ParsedJobDescription {
   niceToHaveSkills: string[];
   seniority: string;
   location: string;
+  salaryRange: string;
   resumeSuggestions: string[];
 }
 

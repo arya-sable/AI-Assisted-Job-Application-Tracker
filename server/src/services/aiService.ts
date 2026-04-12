@@ -9,6 +9,7 @@ export interface ParsedJobDescription {
   niceToHaveSkills: string[];
   seniority: string;
   location: string;
+  salaryRange: string;
   resumeSuggestions: string[];
 }
 
@@ -21,8 +22,10 @@ Return ONLY valid JSON matching this exact schema — no markdown, no extra text
   "niceToHaveSkills": string[],
   "seniority": string,
   "location": string,
+  "salaryRange": string,
   "resumeSuggestions": string[]  // 3-5 specific resume bullet points tailored to this role
 }
+Use an empty string for salaryRange when the JD does not mention compensation. Preserve useful salary text such as "$120k-$150k", "₹12 LPA - ₹18 LPA", "Up to €90,000", "DOE", or "competitive".
 Resume bullet points must:
 - Start with a strong action verb (Built, Designed, Reduced, Implemented, Led...)
 - Reference specific technologies or skills from the JD
@@ -73,6 +76,7 @@ export const parseJobDescription = async (
     niceToHaveSkills: Array.isArray(parsed.niceToHaveSkills) ? parsed.niceToHaveSkills : [],
     seniority: parsed.seniority ?? '',
     location: parsed.location ?? '',
+    salaryRange: typeof parsed.salaryRange === 'string' ? parsed.salaryRange : '',
     resumeSuggestions: Array.isArray(parsed.resumeSuggestions)
       ? parsed.resumeSuggestions.slice(0, 5)
       : [],

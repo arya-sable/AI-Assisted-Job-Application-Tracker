@@ -14,6 +14,14 @@ export const PRIORITY_WEIGHT: Record<ApplicationPriority, number> = {
   Low: 1,
 };
 
+const STATUS_SCORE: Record<ApplicationStatus, number> = {
+  Applied: 18,
+  'Phone Screen': 34,
+  Interview: 58,
+  Offer: 92,
+  Rejected: 4,
+};
+
 const DAY_MS = 1000 * 60 * 60 * 24;
 
 const toDateOnlyTime = (dateIso: string): number => {
@@ -42,6 +50,15 @@ export interface PipelineStats {
   followUpsDue: number;
   nextActionsDue: number;
   highPriority: number;
+  shortlisted: number;
+  upcomingEvents: number;
+  averageScore: number;
+}
+
+export interface UpcomingEvent {
+  label: string;
+  date: string;
+  daysUntil: number;
 }
 
 export const getDaysSince = (dateIso: string): number => {
@@ -68,6 +85,35 @@ export const isNextActionDue = (application: Application): boolean => {
   return daysUntil !== null && daysUntil <= 0;
 };
 
+export const getUpcomingEvent = (
+  application: Application,
+  windowDays = 7
+): UpcomingEvent | null => {
+  if (application.status === 'Rejected') return null;
+
+  const events = [
+    { label: 'Interview', date: application.interviewDate },
+    { label: 'Deadline', date: application.deadlineDate },
+    { label: application.nextAction || 'Next action', date: application.nextActionDate },
+  ];
+
+  const upcomingEvents = events
+    .map((event) => {
+      const daysUntil = getDaysUntil(event.date);
+      return daysUntil === null || !event.date
+        ? null
+        : { label: event.label, date: event.date, daysUntil };
+    })
+    .filter((event): event is UpcomingEvent => Boolean(event))
+    .filter((event) => event.daysUntil <= windowDays)
+    .sort((a, b) => a.daysUntil - b.daysUntil);
+
+  return upcomingEvents[0] ?? null;
+};
+
+export const hasUpcomingEvent = (application: Application): boolean =>
+  getUpcomingEvent(application) !== null;
+
 export const isFollowUpDue = (
   application: Application,
   thresholdDays = 7
@@ -75,6 +121,31 @@ export const isFollowUpDue = (
   if (isNextActionDue(application)) return true;
   if (!FOLLOW_UP_STATUSES.has(application.status)) return false;
   return getDaysSince(application.dateApplied) >= thresholdDays;
+};
+
+export const calculateApplicationScore = (application: Application): number => {
+  const nextActionDays = getDaysUntil(application.nextActionDate);
+  const deadlineDays = getDaysUntil(application.deadlineDate);
+  const priorityBonus = (PRIORITY_WEIGHT[application.priority ?? 'Medium'] - 1) * 6;
+  const contactBonus = application.contactName || application.contactEmail ? 7 : 0;
+  const scheduleBonus = application.interviewDate || application.nextActionDate ? 8 : 0;
+  const favoriteBonus = application.isFavorite ? 7 : 0;
+  const enrichmentBonus =
+    application.resumeSuggestions.length > 0 || application.requiredSkills.length > 0 ? 6 : 0;
+  const overduePenalty =
+    (nextActionDays !== null && nextActionDays < 0 ? 10 : 0) +
+    (deadlineDays !== null && deadlineDays < 0 ? 10 : 0);
+
+  const score =
+    STATUS_SCORE[application.status] +
+    priorityBonus +
+    contactBonus +
+    scheduleBonus +
+    favoriteBonus +
+    enrichmentBonus -
+    overduePenalty;
+
+  return Math.max(0, Math.min(100, Math.round(score)));
 };
 
 export const calculatePipelineStats = (applications: Application[]): PipelineStats => {
@@ -86,6 +157,9 @@ export const calculatePipelineStats = (applications: Application[]): PipelineSta
   const followUpsDue = applications.filter((app) => isFollowUpDue(app)).length;
   const nextActionsDue = applications.filter((app) => isNextActionDue(app)).length;
   const highPriority = applications.filter((app) => app.priority === 'High').length;
+  const shortlisted = applications.filter((app) => app.isFavorite).length;
+  const upcomingEvents = applications.filter((app) => hasUpcomingEvent(app)).length;
+  const scoreSum = applications.reduce((sum, app) => sum + calculateApplicationScore(app), 0);
   const responded = applications.filter((app) => app.status !== 'Applied').length;
 
   return {
@@ -97,6 +171,9 @@ export const calculatePipelineStats = (applications: Application[]): PipelineSta
     followUpsDue,
     nextActionsDue,
     highPriority,
+    shortlisted,
+    upcomingEvents,
+    averageScore: total > 0 ? Math.round(scoreSum / total) : 0,
     responseRate: total > 0 ? Math.round((responded / total) * 100) : 0,
     offerRate: total > 0 ? Math.round((offers / total) * 100) : 0,
   };

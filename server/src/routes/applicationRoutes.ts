@@ -24,8 +24,14 @@ const APPLICATION_FIELDS = [
   'contactEmail',
   'nextAction',
   'nextActionDate',
+  'isFavorite',
+  'deadlineDate',
+  'interviewDate',
+  'interviewMode',
   'resumeSuggestions',
 ] as const;
+
+const DATE_ONLY_FIELDS = new Set(['nextActionDate', 'deadlineDate', 'interviewDate']);
 
 const pickApplicationFields = (body: unknown): Record<string, unknown> => {
   if (!body || typeof body !== 'object') return {};
@@ -33,7 +39,7 @@ const pickApplicationFields = (body: unknown): Record<string, unknown> => {
   return APPLICATION_FIELDS.reduce<Record<string, unknown>>((acc, field) => {
     if (Object.prototype.hasOwnProperty.call(body, field)) {
       const value = (body as Record<string, unknown>)[field];
-      acc[field] = field === 'nextActionDate' && value === '' ? null : value;
+      acc[field] = DATE_ONLY_FIELDS.has(field) && value === '' ? null : value;
     }
 
     return acc;

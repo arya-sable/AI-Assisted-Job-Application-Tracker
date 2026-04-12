@@ -1,10 +1,20 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import type { MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Application, ApplicationPriority } from '../../types';
 import { ShadBadge } from '../shadcn/badge';
-import { getDaysSince, getDaysUntil, isFollowUpDue, isNextActionDue } from '../../utils/applicationMetrics';
-import { Sparkles, Clock, Flag } from 'lucide-react';
+import { useUpdateApplication } from '../../hooks/useApplications';
+import {
+  calculateApplicationScore,
+  getDaysSince,
+  getDaysUntil,
+  getUpcomingEvent,
+  isFollowUpDue,
+  isNextActionDue,
+} from '../../utils/applicationMetrics';
+import { Sparkles, Clock, Flag, Star, CalendarDays } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Props {
   application: Application;
@@ -19,6 +29,7 @@ const PRIORITY_COLORS: Record<ApplicationPriority, string> = {
 
 export default function ApplicationCard({ application, isDragging = false }: Props) {
   const navigate = useNavigate();
+  const { mutate: updateApplication } = useUpdateApplication();
   const {
     attributes,
     listeners,
@@ -46,6 +57,21 @@ export default function ApplicationCard({ application, isDragging = false }: Pro
   const daysInPipeline = getDaysSince(application.dateApplied);
   const dragging = isDragging || isSortableDragging;
   const priority = application.priority ?? 'Medium';
+  const score = calculateApplicationScore(application);
+  const upcomingEvent = getUpcomingEvent(application);
+
+  const handleFavoriteClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    updateApplication(
+      { id: application._id, data: { isFavorite: !application.isFavorite } },
+      {
+        onSuccess: () => toast.success(application.isFavorite ? 'Removed from shortlist' : 'Added to shortlist'),
+        onError: () => toast.error('Could not update shortlist'),
+      }
+    );
+  };
 
   return (
     <div
@@ -68,6 +94,20 @@ export default function ApplicationCard({ application, isDragging = false }: Pro
           </p>
           <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{application.role}</p>
         </div>
+        <button
+          type="button"
+          onClick={handleFavoriteClick}
+          onPointerDown={(event) => event.stopPropagation()}
+          className={`shrink-0 rounded-md p-0.5 transition-colors ${
+            application.isFavorite
+              ? 'text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+              : 'text-slate-300 hover:bg-slate-100 hover:text-yellow-500 dark:text-slate-600 dark:hover:bg-slate-800'
+          }`}
+          aria-label={application.isFavorite ? 'Remove from shortlist' : 'Add to shortlist'}
+          title={application.isFavorite ? 'Remove from shortlist' : 'Add to shortlist'}
+        >
+          <Star className={`h-3.5 w-3.5 ${application.isFavorite ? 'fill-current' : ''}`} />
+        </button>
         {priority === 'High' && (
           <div className="shrink-0">
             <Flag className="h-3.5 w-3.5 text-rose-500" />
@@ -97,11 +137,30 @@ export default function ApplicationCard({ application, isDragging = false }: Pro
         </div>
       )}
 
+      {upcomingEvent && upcomingEvent.label !== (application.nextAction || 'Next action') && (
+        <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-teal-100 bg-teal-50 px-2 py-1.5 text-[10px] font-semibold text-teal-700 dark:border-teal-800/40 dark:bg-teal-900/20 dark:text-teal-300">
+          <CalendarDays className="h-3 w-3 shrink-0" />
+          <span className="truncate">{upcomingEvent.label}</span>
+          <span className="ml-auto font-mono uppercase tracking-widest">
+            {upcomingEvent.daysUntil < 0
+              ? `${Math.abs(upcomingEvent.daysUntil)}d late`
+              : upcomingEvent.daysUntil === 0
+                ? 'today'
+                : `${upcomingEvent.daysUntil}d`}
+          </span>
+        </div>
+      )}
+
       {/* Bottom row: badge + days */}
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
-        <ShadBadge variant="outline" className={`rounded-full text-[8px] px-2 uppercase tracking-widest font-bold ${PRIORITY_COLORS[priority]}`}>
-          {priority}
-        </ShadBadge>
+        <div className="flex min-w-0 items-center gap-1">
+          <ShadBadge variant="outline" className={`rounded-full text-[8px] px-2 uppercase tracking-widest font-bold ${PRIORITY_COLORS[priority]}`}>
+            {priority}
+          </ShadBadge>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+            {score}
+          </span>
+        </div>
         <span className={`text-xs font-mono font-black ${
           followUpDue ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'
         }`}>
