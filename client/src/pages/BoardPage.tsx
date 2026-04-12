@@ -10,8 +10,8 @@ import { Separator } from '../components/shadcn/separator';
 import { useApplications } from '../hooks/useApplications';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { APPLICATION_STATUSES, type ApplicationStatus } from '../types';
-import { calculatePipelineStats, getDaysSince, isFollowUpDue } from '../utils/applicationMetrics';
+import { APPLICATION_PRIORITIES, APPLICATION_STATUSES, type ApplicationPriority, type ApplicationStatus } from '../types';
+import { calculatePipelineStats, getDaysSince, getDaysUntil, isFollowUpDue, PRIORITY_WEIGHT } from '../utils/applicationMetrics';
 import {
   Briefcase,
   Plus,
@@ -26,7 +26,8 @@ import {
 } from 'lucide-react';
 
 type StatusFilter = 'All' | ApplicationStatus;
-type SortMode = 'newest' | 'oldest' | 'company-asc' | 'company-desc';
+type PriorityFilter = 'All' | ApplicationPriority;
+type SortMode = 'newest' | 'oldest' | 'company-asc' | 'company-desc' | 'priority' | 'next-action';
 
 const toCsvValue = (value: string): string => `"${value.replace(/"/g, '""')}"`;
 
@@ -35,6 +36,7 @@ export default function BoardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('All');
   const [followUpsOnly, setFollowUpsOnly] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('newest');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -86,6 +88,11 @@ export default function BoardPage() {
           app.location,
           app.seniority,
           app.status,
+          app.priority,
+          app.jobSource,
+          app.contactName,
+          app.contactEmail,
+          app.nextAction,
           app.requiredSkills.join(' '),
           app.niceToHaveSkills.join(' '),
         ]
@@ -95,9 +102,10 @@ export default function BoardPage() {
           .includes(normalizedQuery);
 
       const statusMatch = statusFilter === 'All' || app.status === statusFilter;
+      const priorityMatch = priorityFilter === 'All' || (app.priority ?? 'Medium') === priorityFilter;
       const followUpMatch = !followUpsOnly || isFollowUpDue(app);
 
-      return queryMatch && statusMatch && followUpMatch;
+      return queryMatch && statusMatch && priorityMatch && followUpMatch;
     });
 
     filtered.sort((a, b) => {
@@ -108,6 +116,16 @@ export default function BoardPage() {
           return a.company.localeCompare(b.company);
         case 'company-desc':
           return b.company.localeCompare(a.company);
+        case 'priority':
+          return (
+            PRIORITY_WEIGHT[b.priority ?? 'Medium'] - PRIORITY_WEIGHT[a.priority ?? 'Medium'] ||
+            new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
+          );
+        case 'next-action': {
+          const aDays = getDaysUntil(a.nextActionDate) ?? Number.POSITIVE_INFINITY;
+          const bDays = getDaysUntil(b.nextActionDate) ?? Number.POSITIVE_INFINITY;
+          return aDays - bDays || new Date(a.dateApplied).getTime() - new Date(b.dateApplied).getTime();
+        }
         case 'newest':
         default:
           return new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime();
@@ -115,20 +133,24 @@ export default function BoardPage() {
     });
 
     return filtered;
-  }, [allApplications, query, statusFilter, followUpsOnly, sortMode]);
+  }, [allApplications, query, statusFilter, priorityFilter, followUpsOnly, sortMode]);
 
   const followUpQueue = useMemo(
     () =>
       allApplications
         .filter((app) => isFollowUpDue(app))
-        .sort((a, b) => new Date(a.dateApplied).getTime() - new Date(b.dateApplied).getTime()),
+        .sort((a, b) => {
+          const aDue = getDaysUntil(a.nextActionDate) ?? Number.POSITIVE_INFINITY;
+          const bDue = getDaysUntil(b.nextActionDate) ?? Number.POSITIVE_INFINITY;
+          return aDue - bDue || new Date(a.dateApplied).getTime() - new Date(b.dateApplied).getTime();
+        }),
     [allApplications]
   );
 
   const nextFollowUp = followUpQueue[0];
 
   const hasActiveFilters =
-    query.trim().length > 0 || statusFilter !== 'All' || followUpsOnly;
+    query.trim().length > 0 || statusFilter !== 'All' || priorityFilter !== 'All' || followUpsOnly;
 
   const exportCsv = () => {
     if (filteredApplications.length === 0) {
@@ -140,10 +162,16 @@ export default function BoardPage() {
       'Company',
       'Role',
       'Status',
+      'Priority',
       'Date Applied',
       'Location',
       'Seniority',
       'Salary Range',
+      'Source',
+      'Contact',
+      'Contact Email',
+      'Next Action',
+      'Next Action Date',
       'JD Link',
       'Required Skills',
       'Nice To Have Skills',
@@ -155,10 +183,16 @@ export default function BoardPage() {
         app.company,
         app.role,
         app.status,
+        app.priority ?? 'Medium',
         app.dateApplied.slice(0, 10),
         app.location ?? '',
         app.seniority ?? '',
         app.salaryRange ?? '',
+        app.jobSource ?? '',
+        app.contactName ?? '',
+        app.contactEmail ?? '',
+        app.nextAction ?? '',
+        app.nextActionDate ?? '',
         app.jdLink ?? '',
         app.requiredSkills.join(' | '),
         app.niceToHaveSkills.join(' | '),
@@ -195,7 +229,8 @@ export default function BoardPage() {
     if (nextMode) {
       setQuery('');
       setStatusFilter('All');
-      setSortMode('oldest');
+      setPriorityFilter('All');
+      setSortMode('next-action');
       toast.success(
         `Showing ${followUpQueue.length} follow-up${followUpQueue.length === 1 ? '' : 's'} due`
       );
@@ -214,9 +249,19 @@ export default function BoardPage() {
   const clearFilters = () => {
     setQuery('');
     setStatusFilter('All');
+    setPriorityFilter('All');
     setFollowUpsOnly(false);
     setSortMode('newest');
   };
+
+  const nextFollowUpDaysUntil = nextFollowUp ? getDaysUntil(nextFollowUp.nextActionDate) : null;
+  const nextFollowUpTiming = nextFollowUpDaysUntil === null
+    ? `${getDaysSince(nextFollowUp?.dateApplied ?? '')} days since applied`
+    : nextFollowUpDaysUntil < 0
+      ? `${Math.abs(nextFollowUpDaysUntil)} days overdue`
+      : nextFollowUpDaysUntil === 0
+        ? 'due today'
+        : `due in ${nextFollowUpDaysUntil} days`;
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
@@ -290,6 +335,19 @@ export default function BoardPage() {
           </select>
 
           <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value as PriorityFilter)}
+            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition-colors focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+          >
+            <option value="All">All priorities</option>
+            {APPLICATION_PRIORITIES.map((priority) => (
+              <option key={priority} value={priority}>
+                {priority}
+              </option>
+            ))}
+          </select>
+
+          <select
             value={sortMode}
             onChange={(e) => setSortMode(e.target.value as SortMode)}
             className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition-colors focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
@@ -298,6 +356,8 @@ export default function BoardPage() {
             <option value="oldest">Oldest</option>
             <option value="company-asc">A-Z</option>
             <option value="company-desc">Z-A</option>
+            <option value="priority">Priority</option>
+            <option value="next-action">Next action</option>
           </select>
 
           <ShadButton
@@ -335,7 +395,8 @@ export default function BoardPage() {
         {followUpsOnly && nextFollowUp && (
           <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800/40 dark:bg-amber-900/10">
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Follow-up mode is on. Next: <span className="font-semibold">{nextFollowUp.company}</span> ({getDaysSince(nextFollowUp.dateApplied)} days since applied)
+              Follow-up mode is on. Next: <span className="font-semibold">{nextFollowUp.company}</span>
+              {nextFollowUp.nextAction ? ` - ${nextFollowUp.nextAction}` : ''} ({nextFollowUpTiming})
             </p>
             <ShadButton type="button" variant="outline" size="sm" onClick={openNextFollowUp}>
               Open Next

@@ -9,11 +9,18 @@ import ResumeSuggestions from '../components/application/ResumeSuggestions';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Spinner from '../components/ui/Spinner';
 import ThemeToggle from '../components/ui/ThemeToggle';
-import { APPLICATION_STATUSES } from '../types';
-import type { ApplicationStatus } from '../types';
+import { APPLICATION_PRIORITIES, APPLICATION_STATUSES } from '../types';
+import type { ApplicationPriority, ApplicationStatus } from '../types';
 import { formatDate } from '../utils/formatDate';
+import { getDaysUntil } from '../utils/applicationMetrics';
 import { normalizeSalaryRange } from '../utils/salaryFormatting';
 import toast from 'react-hot-toast';
+
+const PRIORITY_BADGE_CLASSES: Record<ApplicationPriority, string> = {
+  High: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300',
+  Medium: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300',
+  Low: 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400',
+};
 
 export default function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +43,12 @@ export default function ApplicationDetailPage() {
     notes: '',
     requiredSkills: [] as string[],
     niceToHaveSkills: [] as string[],
+    priority: 'Medium' as ApplicationPriority,
+    jobSource: '',
+    contactName: '',
+    contactEmail: '',
+    nextAction: '',
+    nextActionDate: '',
   });
 
   const startEditing = () => {
@@ -53,6 +66,12 @@ export default function ApplicationDetailPage() {
       notes: application.notes || '',
       requiredSkills: application.requiredSkills,
       niceToHaveSkills: application.niceToHaveSkills,
+      priority: application.priority ?? 'Medium',
+      jobSource: application.jobSource || '',
+      contactName: application.contactName || '',
+      contactEmail: application.contactEmail || '',
+      nextAction: application.nextAction || '',
+      nextActionDate: application.nextActionDate || '',
     });
 
     setIsEditing(true);
@@ -105,6 +124,15 @@ export default function ApplicationDetailPage() {
   }
 
   const displaySalaryRange = normalizeSalaryRange(application.salaryRange || '', application.location || '');
+  const priority = application.priority ?? 'Medium';
+  const nextActionDays = getDaysUntil(application.nextActionDate);
+  const nextActionTiming = nextActionDays === null
+    ? ''
+    : nextActionDays < 0
+      ? `${Math.abs(nextActionDays)} days overdue`
+      : nextActionDays === 0
+        ? 'Due today'
+        : `Due in ${nextActionDays} days`;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 theme-transition">
@@ -151,6 +179,27 @@ export default function ApplicationDetailPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label htmlFor="priority-select" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Priority</label>
+                <select
+                  id="priority-select"
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as ApplicationPriority })}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:focus:border-teal-400 dark:focus:ring-teal-400/15"
+                >
+                  {APPLICATION_PRIORITIES.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+              <Input
+                label="Source"
+                value={formData.jobSource}
+                onChange={(e) => setFormData({ ...formData, jobSource: e.target.value })}
+                placeholder="LinkedIn, referral, careers page"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <label htmlFor="status-select" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Status</label>
                 <select
                   id="status-select"
@@ -184,6 +233,21 @@ export default function ApplicationDetailPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Input
+                label="Contact Name"
+                value={formData.contactName}
+                onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                placeholder="Recruiter or hiring manager"
+              />
+              <Input
+                label="Contact Email"
+                type="email"
+                value={formData.contactEmail}
+                onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                placeholder="name@company.com"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input
                 label="Salary Range"
                 value={formData.salaryRange}
                 onChange={(e) => setFormData({ ...formData, salaryRange: e.target.value })}
@@ -198,6 +262,20 @@ export default function ApplicationDetailPage() {
                 label="JD Link"
                 value={formData.jdLink}
                 onChange={(e) => setFormData({ ...formData, jdLink: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Next Action"
+                value={formData.nextAction}
+                onChange={(e) => setFormData({ ...formData, nextAction: e.target.value })}
+                placeholder="Follow up with recruiter"
+              />
+              <Input
+                label="Next Action Date"
+                type="date"
+                value={formData.nextActionDate}
+                onChange={(e) => setFormData({ ...formData, nextActionDate: e.target.value })}
               />
             </div>
             <div>
@@ -235,10 +313,19 @@ export default function ApplicationDetailPage() {
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{application.company}</h2>
                 <p className="text-lg text-slate-500 dark:text-slate-400">{application.role}</p>
               </div>
-              <Badge status={application.status} />
+              <div className="flex flex-wrap justify-end gap-2">
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${PRIORITY_BADGE_CLASSES[priority]}`}>
+                  {priority} priority
+                </span>
+                <Badge status={application.status} />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-y-4 text-sm mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/30">
+              <div>
+                <span className="text-slate-400 dark:text-slate-500">Priority</span>
+                <p className="font-medium text-slate-700 dark:text-slate-200">{priority}</p>
+              </div>
               {application.location && (
                 <div>
                   <span className="text-slate-400 dark:text-slate-500">Location</span>
@@ -259,6 +346,41 @@ export default function ApplicationDetailPage() {
                 <div>
                   <span className="text-slate-400 dark:text-slate-500">Salary</span>
                   <p className="font-medium text-slate-700 dark:text-slate-200">{displaySalaryRange}</p>
+                </div>
+              )}
+              {application.jobSource && (
+                <div>
+                  <span className="text-slate-400 dark:text-slate-500">Source</span>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">{application.jobSource}</p>
+                </div>
+              )}
+              {(application.contactName || application.contactEmail) && (
+                <div>
+                  <span className="text-slate-400 dark:text-slate-500">Contact</span>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">
+                    {application.contactName || 'Recruiter'}
+                  </p>
+                  {application.contactEmail && (
+                    <a
+                      href={`mailto:${application.contactEmail}`}
+                      className="text-xs font-medium text-teal-600 hover:underline dark:text-teal-400"
+                    >
+                      {application.contactEmail}
+                    </a>
+                  )}
+                </div>
+              )}
+              {(application.nextAction || application.nextActionDate) && (
+                <div className="col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/40 dark:bg-amber-900/10">
+                  <span className="text-slate-400 dark:text-slate-500">Next Action</span>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">
+                    {application.nextAction || 'Follow up'}
+                  </p>
+                  {nextActionTiming && (
+                    <p className="text-xs font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-300">
+                      {nextActionTiming}
+                    </p>
+                  )}
                 </div>
               )}
               {application.jdLink && (

@@ -6,6 +6,40 @@ import { asyncHandler } from '../utils/asyncHandler';
 const router = Router();
 router.use(protect);
 
+const APPLICATION_FIELDS = [
+  'company',
+  'role',
+  'jdLink',
+  'notes',
+  'dateApplied',
+  'status',
+  'salaryRange',
+  'requiredSkills',
+  'niceToHaveSkills',
+  'seniority',
+  'location',
+  'priority',
+  'jobSource',
+  'contactName',
+  'contactEmail',
+  'nextAction',
+  'nextActionDate',
+  'resumeSuggestions',
+] as const;
+
+const pickApplicationFields = (body: unknown): Record<string, unknown> => {
+  if (!body || typeof body !== 'object') return {};
+
+  return APPLICATION_FIELDS.reduce<Record<string, unknown>>((acc, field) => {
+    if (Object.prototype.hasOwnProperty.call(body, field)) {
+      const value = (body as Record<string, unknown>)[field];
+      acc[field] = field === 'nextActionDate' && value === '' ? null : value;
+    }
+
+    return acc;
+  }, {});
+};
+
 // GET /api/applications
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
   const applications = await Application.find({ userId: req.userId }).sort({ createdAt: -1 });
@@ -14,7 +48,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 
 // POST /api/applications
 router.post('/', asyncHandler(async (req: Request, res: Response) => {
-  const app = await Application.create({ ...req.body, userId: req.userId });
+  const app = await Application.create({ ...pickApplicationFields(req.body), userId: req.userId });
   res.status(201).json(app);
 }));
 
@@ -29,7 +63,7 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
 router.patch('/:id', asyncHandler(async (req: Request, res: Response) => {
   const app = await Application.findOneAndUpdate(
     { _id: req.params.id, userId: req.userId },
-    { $set: req.body },
+    { $set: pickApplicationFields(req.body) },
     { new: true, runValidators: true }
   );
   if (!app) { res.status(404).json({ message: 'Application not found' }); return; }

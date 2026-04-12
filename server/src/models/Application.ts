@@ -7,6 +7,8 @@ export type ApplicationStatus =
   | 'Offer'
   | 'Rejected';
 
+export type ApplicationPriority = 'High' | 'Medium' | 'Low';
+
 export interface IApplication extends Document {
   userId: mongoose.Types.ObjectId;
   company: string;
@@ -20,6 +22,12 @@ export interface IApplication extends Document {
   niceToHaveSkills: string[];
   seniority?: string;
   location?: string;
+  priority: ApplicationPriority;
+  jobSource?: string;
+  contactName?: string;
+  contactEmail?: string;
+  nextAction?: string;
+  nextActionDate?: string | null;
   resumeSuggestions: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +51,16 @@ const ApplicationSchema = new Schema<IApplication>(
     niceToHaveSkills: [{ type: String }],
     seniority: { type: String },
     location: { type: String },
+    priority: {
+      type: String,
+      enum: ['High', 'Medium', 'Low'],
+      default: 'Medium',
+    },
+    jobSource: { type: String, trim: true },
+    contactName: { type: String, trim: true },
+    contactEmail: { type: String, trim: true, lowercase: true },
+    nextAction: { type: String, trim: true },
+    nextActionDate: { type: String, trim: true },
     resumeSuggestions: [{ type: String }],
   },
   { timestamps: true }

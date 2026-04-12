@@ -67,7 +67,7 @@ export default function KanbanBoard({ applications }: Props) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-5 gap-2.5 h-full min-w-[900px] lg:min-w-0">
+      <div className="grid grid-cols-5 gap-2.5 h-full min-w-225 lg:min-w-0">
         {APPLICATION_STATUSES.map((status, i) => (
           <KanbanColumn
             key={status}

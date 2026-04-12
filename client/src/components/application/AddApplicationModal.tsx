@@ -5,7 +5,8 @@ import Input from '../ui/Input';
 import ResumeSuggestions from './ResumeSuggestions';
 import { useAiParse } from '../../hooks/useAiParse';
 import { useCreateApplication } from '../../hooks/useApplications';
-import type { CreateApplicationInput } from '../../types';
+import { APPLICATION_PRIORITIES } from '../../types';
+import type { CreateApplicationInput, ApplicationPriority } from '../../types';
 import { normalizeSalaryRange } from '../../utils/salaryFormatting';
 import toast from 'react-hot-toast';
 
@@ -33,6 +34,12 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
     niceToHaveSkills: [],
     seniority: '',
     location: '',
+    priority: 'Medium',
+    jobSource: '',
+    contactName: '',
+    contactEmail: '',
+    nextAction: '',
+    nextActionDate: '',
   });
 
   const handleParse = async () => {
@@ -97,6 +104,12 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
       niceToHaveSkills: [],
       seniority: '',
       location: '',
+      priority: 'Medium',
+      jobSource: '',
+      contactName: '',
+      contactEmail: '',
+      nextAction: '',
+      nextActionDate: '',
     });
     onClose();
   };
@@ -150,6 +163,31 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="priority" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Priority
+              </label>
+              <select
+                id="priority"
+                value={formData.priority ?? 'Medium'}
+                onChange={(e) => updateField('priority', e.target.value as ApplicationPriority)}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white text-slate-800 outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:focus:border-teal-400 dark:focus:ring-teal-400/15"
+              >
+                {APPLICATION_PRIORITIES.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {priority}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Input
+              label="Source"
+              value={formData.jobSource || ''}
+              onChange={(e) => updateField('jobSource', e.target.value)}
+              placeholder="LinkedIn, referral, careers page"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <Input
               label="Location"
               value={formData.location || ''}
@@ -159,6 +197,21 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
               label="Seniority"
               value={formData.seniority || ''}
               onChange={(e) => updateField('seniority', e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Contact Name"
+              value={formData.contactName || ''}
+              onChange={(e) => updateField('contactName', e.target.value)}
+              placeholder="Recruiter or hiring manager"
+            />
+            <Input
+              label="Contact Email"
+              type="email"
+              value={formData.contactEmail || ''}
+              onChange={(e) => updateField('contactEmail', e.target.value)}
+              placeholder="name@company.com"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -174,6 +227,20 @@ export default function AddApplicationModal({ isOpen, onClose }: Props) {
               onChange={(e) => updateField('salaryRange', e.target.value)}
               onBlur={(e) => updateField('salaryRange', normalizeSalaryRange(e.target.value, formData.location || ''))}
               placeholder="e.g. ₹12 LPA - ₹18 LPA"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Next Action"
+              value={formData.nextAction || ''}
+              onChange={(e) => updateField('nextAction', e.target.value)}
+              placeholder="Follow up with recruiter"
+            />
+            <Input
+              label="Next Action Date"
+              type="date"
+              value={formData.nextActionDate || ''}
+              onChange={(e) => updateField('nextActionDate', e.target.value)}
             />
           </div>
           <Input

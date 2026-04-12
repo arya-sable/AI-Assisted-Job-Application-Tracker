@@ -1,15 +1,21 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useNavigate } from 'react-router-dom';
-import type { Application } from '../../types';
+import type { Application, ApplicationPriority } from '../../types';
 import { ShadBadge } from '../shadcn/badge';
-import { getDaysSince, isFollowUpDue } from '../../utils/applicationMetrics';
-import { Sparkles, Clock } from 'lucide-react';
+import { getDaysSince, getDaysUntil, isFollowUpDue, isNextActionDue } from '../../utils/applicationMetrics';
+import { Sparkles, Clock, Flag } from 'lucide-react';
 
 interface Props {
   application: Application;
   isDragging?: boolean;
 }
+
+const PRIORITY_COLORS: Record<ApplicationPriority, string> = {
+  High: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300',
+  Medium: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300',
+  Low: 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400',
+};
 
 export default function ApplicationCard({ application, isDragging = false }: Props) {
   const navigate = useNavigate();
@@ -28,8 +34,18 @@ export default function ApplicationCard({ application, isDragging = false }: Pro
   };
 
   const followUpDue = isFollowUpDue(application);
+  const nextActionDue = isNextActionDue(application);
+  const nextActionDays = getDaysUntil(application.nextActionDate);
+  const nextActionLabel = nextActionDays === null
+    ? ''
+    : nextActionDays < 0
+      ? `${Math.abs(nextActionDays)}d late`
+      : nextActionDays === 0
+        ? 'today'
+        : `${nextActionDays}d`;
   const daysInPipeline = getDaysSince(application.dateApplied);
   const dragging = isDragging || isSortableDragging;
+  const priority = application.priority ?? 'Medium';
 
   return (
     <div
@@ -52,6 +68,11 @@ export default function ApplicationCard({ application, isDragging = false }: Pro
           </p>
           <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{application.role}</p>
         </div>
+        {priority === 'High' && (
+          <div className="shrink-0">
+            <Flag className="h-3.5 w-3.5 text-rose-500" />
+          </div>
+        )}
         {followUpDue && (
           <div className="shrink-0">
             <Clock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
@@ -59,10 +80,27 @@ export default function ApplicationCard({ application, isDragging = false }: Pro
         )}
       </div>
 
+      {(application.nextAction || application.nextActionDate) && (
+        <div className={`mt-2 rounded-lg border px-2 py-1.5 text-[10px] ${
+          nextActionDue
+            ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-300'
+            : 'border-slate-100 bg-slate-50 text-slate-500 dark:border-slate-700/60 dark:bg-slate-800/60 dark:text-slate-400'
+        }`}>
+          <p className="truncate font-semibold">
+            {application.nextAction || 'Next action'}
+          </p>
+          {nextActionLabel && (
+            <p className="mt-0.5 font-mono uppercase tracking-widest">
+              {nextActionLabel}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Bottom row: badge + days */}
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
-        <ShadBadge variant="outline" className="rounded-full text-[8px] px-2 uppercase tracking-widest font-bold">
-          {application.seniority || application.status}
+        <ShadBadge variant="outline" className={`rounded-full text-[8px] px-2 uppercase tracking-widest font-bold ${PRIORITY_COLORS[priority]}`}>
+          {priority}
         </ShadBadge>
         <span className={`text-xs font-mono font-black ${
           followUpDue ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'

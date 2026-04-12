@@ -43,16 +43,32 @@ export const useUpdateApplication = () => {
     },
     onMutate: async ({ id, data }) => {
       await qc.cancelQueries({ queryKey: QUERY_KEY });
+      await qc.cancelQueries({ queryKey: ['application', id] });
       const previous = qc.getQueryData<Application[]>(QUERY_KEY);
+      const previousApplication = qc.getQueryData<Application>(['application', id]);
+
       qc.setQueryData<Application[]>(QUERY_KEY, (old) =>
         old?.map((app) => (app._id === id ? { ...app, ...data } : app)) ?? []
       );
-      return { previous };
+      qc.setQueryData<Application>(['application', id], (old) =>
+        old ? { ...old, ...data } : old
+      );
+
+      return { previous, previousApplication, id };
+    },
+    onSuccess: (updated) => {
+      qc.setQueryData<Application>(['application', updated._id], updated);
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) qc.setQueryData(QUERY_KEY, context.previous);
+      if (context?.previousApplication) {
+        qc.setQueryData(['application', context.id], context.previousApplication);
+      }
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+    onSettled: (_data, _error, vars) => {
+      qc.invalidateQueries({ queryKey: QUERY_KEY });
+      qc.invalidateQueries({ queryKey: ['application', vars.id] });
+    },
   });
 };
 

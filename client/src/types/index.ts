@@ -8,6 +8,10 @@ export const APPLICATION_STATUSES = [
 
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 
+export const APPLICATION_PRIORITIES = ['High', 'Medium', 'Low'] as const;
+
+export type ApplicationPriority = (typeof APPLICATION_PRIORITIES)[number];
+
 export interface Application {
   _id: string;
   userId: string;
@@ -22,6 +26,12 @@ export interface Application {
   niceToHaveSkills: string[];
   seniority?: string;
   location?: string;
+  priority?: ApplicationPriority;
+  jobSource?: string;
+  contactName?: string;
+  contactEmail?: string;
+  nextAction?: string;
+  nextActionDate?: string | null;
   resumeSuggestions: string[];
   createdAt: string;
   updatedAt: string;
@@ -39,6 +49,12 @@ export interface CreateApplicationInput {
   niceToHaveSkills?: string[];
   seniority?: string;
   location?: string;
+  priority?: ApplicationPriority;
+  jobSource?: string;
+  contactName?: string;
+  contactEmail?: string;
+  nextAction?: string;
+  nextActionDate?: string | null;
   resumeSuggestions?: string[];
 }
 

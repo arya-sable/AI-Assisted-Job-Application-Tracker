@@ -1,5 +1,5 @@
 import type { PipelineStats } from '../../utils/applicationMetrics';
-import { BarChart3, TrendingUp, Trophy, Clock } from 'lucide-react';
+import { BarChart3, TrendingUp, Trophy, Clock, Flag } from 'lucide-react';
 
 interface Props {
   stats: PipelineStats;
@@ -32,16 +32,23 @@ export default function BoardInsights({
       icon: Trophy,
     },
     {
+      label: 'Priority',
+      value: stats.highPriority,
+      helper: stats.highPriority > 0 ? 'High priority' : 'No hot leads',
+      alert: stats.highPriority > 0,
+      icon: Flag,
+    },
+    {
       label: 'Follow-ups',
       value: stats.followUpsDue,
-      helper: stats.followUpsDue > 0 ? 'Action needed' : 'All clear',
+      helper: stats.nextActionsDue > 0 ? `${stats.nextActionsDue} scheduled` : 'All clear',
       alert: stats.followUpsDue > 0,
       icon: Clock,
     },
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       {insightCards.map((card, i) => (
         (() => {
           const isFollowUpsCard = card.label === 'Follow-ups';
