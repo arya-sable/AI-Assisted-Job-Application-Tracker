@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../api/axiosInstance';
 
 interface User {
@@ -17,12 +18,16 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(localStorage.getItem('token')));
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
 
     axiosInstance
       .get('/auth/me')
@@ -31,19 +36,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
       .catch(() => {
         localStorage.removeItem('token');
+        queryClient.clear();
         setToken(null);
         setUser(null);
       })
       .finally(() => setIsLoading(false));
-  }, [token]);
+  }, [queryClient, token]);
 
   const login = (newToken: string, newUser: User) => {
+    queryClient.clear();
     localStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(newUser);
   };
 
   const logout = () => {
+    queryClient.clear();
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
