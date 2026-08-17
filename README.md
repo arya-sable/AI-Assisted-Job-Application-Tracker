@@ -58,7 +58,7 @@ A full-stack application that helps job seekers manage their job applications on
 
 ```bash
 # Clone the repo
-git clone https://github.com/nikkkhil2935/AI-Assisted-Job-Application-Tracker.git
+git clone https://github.com/arya-sable/AI-Assisted-Job-Application-Tracker.git
 cd AI-Assisted-Job-Application-Tracker
 
 # Install server dependencies
@@ -193,3 +193,4 @@ npm run dev          # runs on http://localhost:5173
 - **Database:** MongoDB Atlas (M0 free tier)
 
 See the deployment section in the project docs for detailed setup steps.
+
