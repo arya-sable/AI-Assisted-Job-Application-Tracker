@@ -2,8 +2,9 @@
 
 A full-stack application that helps job seekers manage their job applications on a visual Kanban board. Features an AI-powered job description parser (Groq / LLaMA) that extracts structured data and generates tailored resume bullet-point suggestions.
 
-**Live:** [Frontend (Vercel)](https://ai-assisted-job-application-tracker-phi.vercel.app) | [API (Render)](https://ai-assisted-job-application-tracker-s2ee.onrender.com)
+**Live Demo:** [AI Job Tracker](https://ai-assisted-job-tracker.pages.dev)
 
+**Backend API:** [Render](https://ai-assisted-job-application-tracker-s2ee.onrender.com)
 ---
 
 ## Tech Stack
